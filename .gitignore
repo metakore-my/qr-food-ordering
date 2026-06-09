@@ -1,0 +1,79 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# local QA / DB backups / scratch (may contain secrets — NEVER commit)
+.qa-tmp/
+*.sql
+!prisma/**/*.sql
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files — ALL variants ignored except .env.example (placeholders only).
+# Never commit real secrets to this public repo.
+.env
+.env.*
+!.env.example
+
+# Railway CLI local state (project/service linkage, may reference prod) — never commit
+.railway/
+
+# Host-specific deploy config + ops runbook — kept LOCAL only, never in the public
+# template. These live in the private dev/demo repo (metakore-my/qr-food-ordering-dev),
+# which is what Railway deploys. Self-hosters bring their own host config.
+# NOTE: these files ARE tracked in this private dev repo (git ignores only UNtracked
+# files); the rule exists so the identical .gitignore in the public template keeps
+# them out there. The publish script strips the files themselves from public.
+railway.toml
+railway.cron.toml
+DEPLOY.md
+MAINTAINING.md
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+/src/generated/prisma
+
+# design docs
+/docs/plans/
+/docs/superpowers/
+
+# Claude Code — ignore personal/local content, but ship shared rules and skills
+.claude/*
+!.claude/rules/
+!.claude/skills/
+!.claude/settings.json

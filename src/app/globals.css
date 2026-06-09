@@ -1,0 +1,141 @@
+@import "tailwindcss";
+@import "@fontsource/noto-sans-thai/400.css";
+@import "@fontsource/noto-sans-thai/700.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-sans: "Noto Sans Thai", "Noto Sans", sans-serif;
+}
+
+/*
+  Primary ramp uses plain @theme (NOT inline) on purpose: Tailwind emits these as
+  `:root` CSS variables AND makes `primary-*` utilities reference them via var(),
+  so the runtime <style> the root layout injects (per-deployment brand color) can
+  override them. With @theme inline the literal hex is baked into utilities and the
+  injected override is dead — the theme would always render this default green.
+*/
+@theme {
+  --color-primary-50: #E6F5ED;
+  --color-primary-100: #B3E0C8;
+  --color-primary-200: #80CCA3;
+  --color-primary-300: #4DB77E;
+  --color-primary-400: #26A762;
+  --color-primary-500: #005A2A;
+  --color-primary-600: #005125;
+  --color-primary-700: #00471F;
+  --color-primary-800: #003D1A;
+  --color-primary-900: #003318;
+  --color-primary-950: #00200F;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+html {
+  color-scheme: light only;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Noto Sans Thai", "Noto Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+
+/* Hide scrollbar but keep scroll functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.home-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  --bg-opacity: 0.5;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255, 238, 214, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 10%, rgba(207, 232, 223, 0.35), transparent 40%),
+    #f7f7f2;
+}
+
+.home-hero-bg__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.2)),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.1));
+}
+
+.admin-portal-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  --bg-opacity: 0.5;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 240, 214, 0.35), transparent 45%),
+    radial-gradient(circle at 90% 0%, rgba(207, 232, 223, 0.4), transparent 40%),
+    #f7f7f2;
+  overflow: hidden;
+}
+
+.home-hero-bg__slide,
+.admin-portal-bg__slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: saturate(1.05) contrast(1.02);
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 1.2s ease;
+  animation: bg-zoom 18s ease-in-out infinite;
+  animation-play-state: paused;
+}
+
+.home-hero-bg__slide.is-active,
+.home-hero-bg__slide.is-next,
+.admin-portal-bg__slide.is-active,
+.admin-portal-bg__slide.is-next {
+  opacity: var(--bg-opacity, 0.5);
+  animation-play-state: running;
+}
+
+.admin-portal-bg__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1)),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.1));
+}
+
+@keyframes bg-zoom {
+  0% {
+    transform: scale(1.02);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-bg__slide,
+  .admin-portal-bg__slide {
+    animation: none;
+    transition: none;
+  }
+}
