@@ -1,0 +1,126 @@
+import "dotenv/config";
+import { PrismaClient, UserRole } from "@prisma/client";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import bcrypt from "bcryptjs";
+import { assertValidSeedPassword } from "../src/lib/validations";
+
+function parseDatabaseUrl(url: string) {
+  const parsed = new URL(url);
+  return {
+    host: parsed.hostname,
+    port: parsed.port ? parseInt(parsed.port, 10) : 3306,
+    user: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+    database: parsed.pathname.replace(/^\//, ""),
+  };
+}
+
+const dbConfig = parseDatabaseUrl(process.env.DATABASE_URL!);
+const adapter = new PrismaMariaDb({
+  ...dbConfig,
+  connectionLimit: 5,
+  // Store DATETIME columns as UTC regardless of the machine running the seed
+  // (an operator's laptop may not be in UTC). Matches src/lib/prisma.ts.
+  timezone: "Z",
+});
+const prisma = new PrismaClient({ adapter });
+
+/**
+ * Default SystemSetting rows for a fresh self-host deployment.
+ *
+ * Always upserted with an EMPTY `update: {}` so re-running the seed never
+ * clobbers values an operator has changed in the admin console — it only fills
+ * in rows that don't exist yet. Defaults match the project default deployment
+ * (English UI, MYR currency, the 6-locale region set, green theme).
+ */
+const DEFAULT_SETTINGS: Record<string, string> = {
+  maintenance_mode: "false",
+  app_name: "Restaurant",
+  currency: "MYR",
+  default_locale: "en",
+  canonical_locale: "en",
+  enabled_locales: "en,th,vi,zh-CN,zh-TW,ms",
+  brand_theme: "green",
+};
+
+async function main() {
+  const pw1 = process.env.SEED_SUPERADMIN_PASSWORD;
+  const pw2 = process.env.SEED_DEV_PASSWORD;
+
+  // Admin seeding is per-password — each var seeds its own SUPERADMIN when it
+  // holds a value:
+  //   - SEED_SUPERADMIN_PASSWORD set → seed the `superadminxyz` SUPERADMIN.
+  //   - SEED_DEV_PASSWORD set        → seed the `devxyz` SUPERADMIN.
+  // The two are independent (set one, both, or neither). When BOTH are unset the
+  // DB stays empty and the first-run /admin/setup wizard shows to the first
+  // visitor at /admin, who registers the first admin themselves. Do NOT throw.
+
+  // Validate BOTH passwords up front — before any DB write — so an invalid value
+  // fails fast (and atomically) instead of seeding one admin then throwing on the
+  // other, leaving a half-seeded DB. Empty/unset values are skipped (not an error).
+  if (pw1) assertValidSeedPassword("SEED_SUPERADMIN_PASSWORD", pw1);
+  if (pw2) assertValidSeedPassword("SEED_DEV_PASSWORD", pw2);
+
+  const seeded: string[] = [];
+
+  if (pw1) {
+    const hash1 = await bcrypt.hash(pw1, 12);
+    await prisma.user.upsert({
+      where: { username: "superadminxyz" },
+      update: {},
+      create: {
+        username: "superadminxyz",
+        password: hash1,
+        role: UserRole.SUPERADMIN,
+        // Seed account: flagged so it does NOT close the /admin/setup wizard —
+        // the customer still creates their own first real admin. See first-admin.ts.
+        isSeed: true,
+      },
+    });
+    seeded.push("superadminxyz");
+  }
+
+  if (pw2) {
+    const hash2 = await bcrypt.hash(pw2, 12);
+    await prisma.user.upsert({
+      where: { username: "devxyz" },
+      update: {},
+      create: {
+        username: "devxyz",
+        password: hash2,
+        role: UserRole.SUPERADMIN,
+        // Seed account: flagged so it does NOT close the /admin/setup wizard —
+        // the customer still creates their own first real admin. See first-admin.ts.
+        isSeed: true,
+      },
+    });
+    seeded.push("devxyz");
+  }
+
+  if (seeded.length > 0) {
+    console.log(`Seeded SUPERADMIN user(s): ${seeded.join(", ")}.`);
+  } else {
+    console.log(
+      "SEED_SUPERADMIN_PASSWORD / SEED_DEV_PASSWORD unset — skipping admin seeding " +
+      "(use the /admin/setup wizard to register the first admin)."
+    );
+  }
+
+  // Always ensure default system settings exist (never clobber existing values).
+  for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+    await prisma.systemSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value },
+    });
+  }
+
+  console.log("Ensured default system settings.");
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());

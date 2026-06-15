@@ -1,0 +1,251 @@
+datasource db {
+  provider = "mysql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --- Auth & Users ---
+
+model User {
+  id          Int      @id @default(autoincrement())
+  username    String   @unique @db.VarChar(50)
+  password    String   @db.VarChar(255) // bcrypt hash
+  role        UserRole
+  permissions String   @default("[]") @db.VarChar(255) // JSON array: ["menu","tables","reports"]
+  isActive     Boolean  @default(true)
+  // Seed/provisioned account (e.g. the dev support login). Seed accounts do NOT
+  // count toward the first-admin gate, so seeding `devxyz` still leaves the
+  // /admin/setup wizard open for the customer to create their own first real
+  // admin. See first-admin.ts hasAnyAdmin() and the setup race-guard.
+  isSeed       Boolean  @default(false)
+  tokenVersion Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+}
+
+// --- Restaurant ---
+
+model Table {
+  id        Int       @id @default(autoincrement())
+  number    Int       @unique
+  token     String    @unique @db.VarChar(64) // HMAC-signed identifier for QR
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sessions  Session[]
+
+  @@map("tables")
+}
+
+model Category {
+  id        Int                     @id @default(autoincrement())
+  sortOrder Int                     @default(0)
+  isActive  Boolean                 @default(true)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  names     CategoryTranslation[]
+  items     MenuItem[]
+
+  @@index([isActive])
+  @@map("categories")
+}
+
+model CategoryTranslation {
+  id         Int      @id @default(autoincrement())
+  categoryId Int
+  locale     String   @db.VarChar(5) // th, en, zh-CN, zh-TW, ja, ko, ru, hi
+  name       String   @db.VarChar(100)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@map("category_translations")
+}
+
+model MenuItem {
+  id             Int                     @id @default(autoincrement())
+  categoryId     Int
+  price          Decimal                 @db.Decimal(10, 2)
+  imageUrl       String?                 @db.VarChar(500) // R2 URL
+  isAvailable    Boolean                 @default(true)
+  isCombo        Boolean                 @default(false)
+  isFeatured     Boolean                 @default(false)
+  comboBasePrice Decimal?                @db.Decimal(10, 2)
+  sortOrder      Int                     @default(0)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  category       Category                @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  names          MenuItemTranslation[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  optionGroups   OptionGroup[]
+
+  @@index([categoryId])
+  @@index([isAvailable])
+  @@map("menu_items")
+}
+
+model MenuItemTranslation {
+  id          Int      @id @default(autoincrement())
+  menuItemId  Int
+  locale      String   @db.VarChar(5)
+  name        String   @db.VarChar(200)
+  description String?  @db.VarChar(500)
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, locale])
+  @@map("menu_item_translations")
+}
+
+// --- Menu Options ---
+
+enum OptionSelectionType {
+  SINGLE   // Radio buttons — pick exactly one
+  MULTIPLE // Checkboxes — pick zero or more
+}
+
+model OptionGroup {
+  id            Int                      @id @default(autoincrement())
+  menuItemId    Int
+  selectionType OptionSelectionType      @default(SINGLE)
+  isRequired    Boolean                  @default(false)
+  sortOrder     Int                      @default(0)
+  menuItem      MenuItem                 @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  names         OptionGroupTranslation[]
+  choices       OptionChoice[]
+
+  @@index([menuItemId])
+  @@map("option_groups")
+}
+
+model OptionGroupTranslation {
+  id            Int         @id @default(autoincrement())
+  optionGroupId Int
+  locale        String      @db.VarChar(5)
+  name          String      @db.VarChar(100)
+  optionGroup   OptionGroup @relation(fields: [optionGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([optionGroupId, locale])
+  @@map("option_group_translations")
+}
+
+model OptionChoice {
+  id              Int                      @id @default(autoincrement())
+  optionGroupId   Int
+  priceAdjustment Decimal                  @default(0) @db.Decimal(10, 2)
+  sortOrder       Int                      @default(0)
+  optionGroup     OptionGroup              @relation(fields: [optionGroupId], references: [id], onDelete: Cascade)
+  names           OptionChoiceTranslation[]
+
+  @@index([optionGroupId])
+  @@map("option_choices")
+}
+
+model OptionChoiceTranslation {
+  id             Int          @id @default(autoincrement())
+  optionChoiceId Int
+  locale         String       @db.VarChar(5)
+  name           String       @db.VarChar(100)
+  optionChoice   OptionChoice @relation(fields: [optionChoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([optionChoiceId, locale])
+  @@map("option_choice_translations")
+}
+
+// --- Ordering ---
+
+model Session {
+  id        String        @id @default(cuid())
+  tableId   Int
+  status    SessionStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  table     Table         @relation(fields: [tableId], references: [id])
+  orders    Order[]
+  cartItems CartItem[]
+
+  @@index([tableId, status])
+  @@index([status, updatedAt])
+  @@map("sessions")
+}
+
+enum SessionStatus {
+  ACTIVE
+  CHECKED_OUT
+  EXPIRED
+}
+
+model CartItem {
+  id              Int      @id @default(autoincrement())
+  sessionId       String
+  deviceId        String   @db.VarChar(36) // UUID per browser/device
+  menuItemId      Int
+  quantity        Int      @default(1)
+  selectedOptions String   @default("[]") @db.Text // JSON: [{ groupId, choiceIds }]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  session         Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  menuItem        MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, deviceId])
+  @@index([sessionId, menuItemId])
+  @@index([menuItemId])
+  @@map("cart_items")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  sessionId   String
+  status      OrderStatus @default(PENDING)
+  totalAmount Decimal     @db.Decimal(10, 2)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  session     Session     @relation(fields: [sessionId], references: [id])
+  items       OrderItem[]
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  DECLINED
+}
+
+model OrderItem {
+  id              Int      @id @default(autoincrement())
+  orderId         Int
+  menuItemId      Int?
+  itemName        String?  @db.VarChar(255) // canonical-locale dish-name snapshot at order time — survives menu rename/delete (menuItem is SetNull). Nullable for pre-migration rows; reads fall back to the live menuItem.names join then a "deleted item" label.
+  quantity        Int
+  unitPrice       Decimal  @db.Decimal(10, 2) // snapshot at order time (includes option adjustments)
+  selectedOptions String   @default("[]") @db.Text // JSON snapshot: [{ groupName, choiceName, priceAdjustment }]
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem        MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([menuItemId])
+  @@map("order_items")
+}
+
+// --- System ---
+
+model SystemSetting {
+  key       String   @id @db.VarChar(50)
+  value     String   @db.VarChar(500)
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
