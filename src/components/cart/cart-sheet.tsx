@@ -44,6 +44,15 @@ export function CartSheet({
   const [isOrdering, setIsOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  // Captured from the placed order so the success screen can recap what went
+  // through (the cart is cleared after placement, so `total`/`items` are 0 by
+  // then — capture here). The per-session ORDER NUMBER is shown on /checkout
+  // (it's computed across the session's orders, which this view doesn't hold),
+  // so the confirmation recaps the amount + item count, not a raw DB id.
+  const [placedSummary, setPlacedSummary] = useState<{
+    total: number;
+    count: number;
+  } | null>(null);
 
   // Synchronous re-entrancy lock. The `disabled={isOrdering}` prop on the button
   // can't stop a fast double-tap on its own: `setIsOrdering(true)` is async, so a
@@ -60,7 +69,11 @@ export function CartSheet({
     try {
       setIsOrdering(true);
       setOrderError(null);
-      await placeOrder();
+      const placed = await placeOrder();
+      setPlacedSummary({
+        total: placed.totalAmount,
+        count: placed.items.reduce((sum, it) => sum + it.quantity, 0),
+      });
       setOrderSuccess(true);
     } catch (err) {
       // Map the server's stable machine code to a localized message; fall back
@@ -140,6 +153,21 @@ export function CartSheet({
         <h2 className="text-lg font-bold text-gray-900">
           {translations.orderPlaced}
         </h2>
+        {/* Recap what was just placed — the customer paid and otherwise sees only
+            a checkmark. Amount + item count reassure them what went through; the
+            per-session order number + per-order breakdown live on /checkout. */}
+        {placedSummary && (
+          <p className="mt-2 text-sm text-gray-600">
+            {tCart("orderSummary", {
+              count: placedSummary.count,
+              total: formatMoneyWith(placedSummary.total, {
+                currency: cfg.currency,
+                decimals: cfg.decimals,
+                locale: cfg.defaultLocale,
+              }),
+            })}
+          </p>
+        )}
         {/* Primary next step after ordering is tracking the order / showing the
             checkout QR (the receipt-icon nav tab is unlabeled, so surface it
             explicitly here). Back to menu stays as the secondary action. */}
@@ -219,8 +247,11 @@ export function CartSheet({
         ))}
       </div>
 
-      {/* Total and place order */}
-      <div className="mt-6 space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-md">
+      {/* Total and place order — sticky to the bottom of the viewport so the
+          primary action stays thumb-reachable without scrolling past a long
+          cart. `sticky bottom-0` keeps it in normal flow (no content overlap)
+          while pinning it once the list grows past the screen. */}
+      <div className="sticky bottom-0 z-10 mt-6 space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-md">
         <div className="flex items-center justify-between">
           <span className="text-base font-semibold text-gray-700">
             {translations.total}

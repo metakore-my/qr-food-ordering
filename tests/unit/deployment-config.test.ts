@@ -5,7 +5,6 @@ describe("parseDeploymentConfig", () => {
   it("returns en/THB/all-6 defaults when env is empty", () => {
     const c = parseDeploymentConfig({});
     expect(c.defaultLocale).toBe("en");
-    expect(c.canonicalLocale).toBe("en");
     expect(c.currency).toBe("THB");
     expect(c.timezone).toBe("Asia/Bangkok");
     expect(c.enabledLocales).toEqual([...KNOWN_LOCALES]);
@@ -14,12 +13,10 @@ describe("parseDeploymentConfig", () => {
   it("parses a Malaysian English deployment", () => {
     const c = parseDeploymentConfig({
       NEXT_PUBLIC_DEFAULT_LOCALE: "en",
-      NEXT_PUBLIC_CANONICAL_LOCALE: "en",
       NEXT_PUBLIC_CURRENCY: "MYR",
       NEXT_PUBLIC_ENABLED_LOCALES: "en,zh-CN",
     });
     expect(c.defaultLocale).toBe("en");
-    expect(c.canonicalLocale).toBe("en");
     expect(c.currency).toBe("MYR");
     expect(c.enabledLocales).toEqual(["en", "zh-CN"]);
   });
@@ -47,15 +44,6 @@ describe("parseDeploymentConfig", () => {
         NEXT_PUBLIC_ENABLED_LOCALES: "en,th",
       })
     ).toThrow(/default/i);
-  });
-
-  it("throws when canonicalLocale is not in the enabled set", () => {
-    expect(() =>
-      parseDeploymentConfig({
-        NEXT_PUBLIC_CANONICAL_LOCALE: "vi",
-        NEXT_PUBLIC_ENABLED_LOCALES: "en,th",
-      })
-    ).toThrow(/canonical/i);
   });
 });
 

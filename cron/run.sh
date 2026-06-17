@@ -1,6 +1,21 @@
 #!/bin/sh
 set -e
 
+# Config-file guard: this script is the CMD of Dockerfile.cron, which sets
+# CRON_RUNNER=1. If the cron SERVICE was built from the APP build config (the app
+# Dockerfile) because the cron service's config-file path wasn't applied, this env
+# var is absent and we abort immediately with a clear error — instead of the
+# misleading "healthcheck never became healthy" timeout that the app image produces
+# on a container with no HTTP server. Stricter-by-construction: the cron Dockerfile
+# is the ONLY thing that sets this sentinel.
+if [ "${CRON_RUNNER}" != "1" ]; then
+  echo "[FATAL] CRON_RUNNER not set — this container was NOT built from"
+  echo "        Dockerfile.cron. The cron service's build config-file path is wrong"
+  echo "        (it built the app instead). Point it at the cron config file and"
+  echo "        redeploy. Refusing to run."
+  exit 1
+fi
+
 echo "[INFO] Starting cleanup cron job"
 
 # POST to the cleanup endpoint and capture the HTTP status separately from the body.

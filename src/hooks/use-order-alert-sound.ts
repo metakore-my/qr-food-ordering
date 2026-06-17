@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import {
   clampSoundId,
   clampVolume,
@@ -76,6 +70,64 @@ function writePrefs(next: OrderAlertPrefs): void {
 }
 
 /**
+ * TAB-LIFETIME audio singletons (NOT per-component).
+ *
+ * The AudioContext, the <audio> element, the decoded buffer, and the `unlocked`
+ * flag all live at module scope so they SURVIVE the component unmounting. The
+ * dashboard (`order-board.tsx`) is the only consumer, but it unmounts every time
+ * the admin navigates away (SPA `<Link>` nav) and remounts on return — if these
+ * lived in `useState`/`useRef` the unlock would reset on every visit and the
+ * "tap to enable sound" prompt would reappear even though the AudioContext (a
+ * plain JS object) is still alive and armed. Module scope keeps one armed
+ * context for the whole tab session. A genuine FULL page reload makes a fresh
+ * module instance → `unlocked` is false again → one fresh tap is needed, which
+ * is unavoidable per the browser autoplay policy.
+ *
+ * `globalThis`-guarded so a dev HMR reload reuses the same singletons instead of
+ * orphaning the previous module's armed context (matches the rate-limit / menu
+ * cache / JWT-cache stores — see CLAUDE.md "single-instance in-memory stores").
+ */
+interface AudioSingletons {
+  ctx: AudioContext | null;
+  audioEl: HTMLAudioElement | null;
+  buffer: AudioBuffer | null;
+  loadedUrl: string | null;
+  unlocked: boolean;
+}
+const audioGlobal = globalThis as unknown as {
+  __orderAlertAudio?: AudioSingletons;
+};
+const audio: AudioSingletons =
+  audioGlobal.__orderAlertAudio ??
+  (audioGlobal.__orderAlertAudio = {
+    ctx: null,
+    audioEl: null,
+    buffer: null,
+    loadedUrl: null,
+    unlocked: false,
+  });
+
+// External store for the `unlocked` flag so every mounted hook re-renders when
+// it flips (and a remount reads the persisted value). Server snapshot = false
+// (the prompt is hidden during SSR; the client store takes over on hydration).
+const unlockedListeners = new Set<() => void>();
+function readUnlockedSnapshot(): boolean {
+  return audio.unlocked;
+}
+function getServerUnlockedSnapshot(): boolean {
+  return false;
+}
+function subscribeUnlocked(cb: () => void): () => void {
+  unlockedListeners.add(cb);
+  return () => unlockedListeners.delete(cb);
+}
+function setUnlockedGlobal(value: boolean): void {
+  if (audio.unlocked === value) return;
+  audio.unlocked = value;
+  for (const cb of unlockedListeners) cb();
+}
+
+/**
  * Per-device new-order alert sound engine.
  *
  * Why two playback paths (and the runtime switch between them):
@@ -106,17 +158,16 @@ export function useOrderAlertSound() {
     readPrefsSnapshot,
     getServerPrefsSnapshot
   );
-  const [unlocked, setUnlocked] = useState(false);
-
-  // HTML5 <audio> path (ignores iOS mute switch).
-  const audioElRef = useRef<HTMLAudioElement | null>(null);
-  // Web Audio path (respects iOS mute switch).
-  const ctxRef = useRef<AudioContext | null>(null);
-  const bufferRef = useRef<AudioBuffer | null>(null);
-  // Which sound URL the element + decoded buffer currently hold. When the
-  // admin switches sounds, these go stale and are rebuilt on the next
-  // unlock()/play() so the new selection takes effect without a reload.
-  const loadedUrlRef = useRef<string | null>(null);
+  // `unlocked` is read from the TAB-LIFETIME store (see audio singletons above),
+  // so it survives this component unmounting/remounting on SPA navigation. The
+  // audio primitives (ctx / element / buffer / loadedUrl) live on the same
+  // `audio` singleton — they used to be per-component refs, which is exactly why
+  // the unlock reset on every dashboard revisit.
+  const unlocked = useSyncExternalStore(
+    subscribeUnlocked,
+    readUnlockedSnapshot,
+    getServerUnlockedSnapshot
+  );
 
   /**
    * Ensure the <audio> element and decoded buffer match `url`, rebuilding them
@@ -124,31 +175,31 @@ export function useOrderAlertSound() {
    * may be null if Web Audio is unavailable). Safe to call repeatedly.
    */
   const ensureLoaded = useCallback(async (url: string) => {
-    const changed = loadedUrlRef.current !== url;
+    const changed = audio.loadedUrl !== url;
 
     // HTML5 element — (re)create for the current URL.
-    if (changed || !audioElRef.current) {
+    if (changed || !audio.audioEl) {
       const el = new Audio(url);
       el.preload = "auto";
-      audioElRef.current = el;
+      audio.audioEl = el;
     }
 
     // Web Audio buffer — (re)decode for the current URL.
-    if (changed || !bufferRef.current) {
-      const ctx = ctxRef.current;
+    if (changed || !audio.buffer) {
+      const ctx = audio.ctx;
       if (ctx) {
         try {
           const res = await fetch(url);
           const arr = await res.arrayBuffer();
-          bufferRef.current = await ctx.decodeAudioData(arr);
+          audio.buffer = await ctx.decodeAudioData(arr);
         } catch {
-          bufferRef.current = null; // element path can still cover playback
+          audio.buffer = null; // element path can still cover playback
         }
       }
     }
 
-    loadedUrlRef.current = url;
-    return { el: audioElRef.current, buf: bufferRef.current };
+    audio.loadedUrl = url;
+    return { el: audio.audioEl, buf: audio.buffer };
   }, []);
 
   /**
@@ -167,8 +218,8 @@ export function useOrderAlertSound() {
         .webkitAudioContext;
     try {
       if (Ctor) {
-        if (!ctxRef.current) ctxRef.current = new Ctor();
-        if (ctxRef.current.state === "suspended") await ctxRef.current.resume();
+        if (!audio.ctx) audio.ctx = new Ctor();
+        if (audio.ctx.state === "suspended") await audio.ctx.resume();
       }
     } catch {
       /* context resume failed — element path may still work */
@@ -192,7 +243,7 @@ export function useOrderAlertSound() {
     }
 
     // --- Web Audio path: ONE silent buffer fully unlocks the context on iOS ---
-    const ctx = ctxRef.current;
+    const ctx = audio.ctx;
     if (ctx && buf) {
       try {
         const src = ctx.createBufferSource();
@@ -207,7 +258,7 @@ export function useOrderAlertSound() {
       }
     }
 
-    if (ok) setUnlocked(true);
+    if (ok) setUnlockedGlobal(true);
     return ok;
   }, [ensureLoaded]);
 
@@ -238,7 +289,7 @@ export function useOrderAlertSound() {
 
       // Web Audio path (respects iOS mute). Also the fallback if the element
       // path is unavailable. A GainNode applies the per-device volume.
-      const ctx = ctxRef.current;
+      const ctx = audio.ctx;
       if (ctx && buf) {
         try {
           if (ctx.state === "suspended") void ctx.resume();
@@ -260,7 +311,7 @@ export function useOrderAlertSound() {
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === "visible") {
-        const ctx = ctxRef.current;
+        const ctx = audio.ctx;
         if (ctx && ctx.state === "suspended") void ctx.resume();
       }
     };

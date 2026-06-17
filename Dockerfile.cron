@@ -3,4 +3,10 @@ FROM alpine:3.21
 RUN apk add --no-cache curl
 COPY cron/run.sh /run.sh
 RUN chmod +x /run.sh
+# Identity sentinel — ONLY this image sets it. run.sh refuses to run without it, so
+# if your host ever builds the cron service from the APP build config (the app
+# Dockerfile) instead of this cron Dockerfile, the job fails LOUDLY with a "wrong
+# config file" message instead of silently booting the app and timing out on a
+# healthcheck the cron container can't serve. See cron/run.sh for the assertion.
+ENV CRON_RUNNER=1
 CMD ["/run.sh"]

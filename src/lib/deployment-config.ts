@@ -31,8 +31,6 @@ const DEFAULT_TIMEZONE = "Asia/Bangkok";
 export interface DeploymentConfig {
   /** UI default locale + URL root. */
   defaultLocale: string;
-  /** Canonical DB locale: order snapshots + name read-fallback. */
-  canonicalLocale: string;
   /** ISO 4217 currency code used for all money display. */
   currency: string;
   /** IANA timezone for all date display + report bucketing, derived from currency. */
@@ -61,7 +59,17 @@ export function currencyDecimals(code: string): number {
   }
 }
 
-/** Pure parser, retained for its unit test (no longer called at runtime). */
+/**
+ * Pure parser, retained ONLY for its unit test (never called at runtime —
+ * runtime config is DB-backed via `getSettings()`/`resolveSettings`). It still
+ * exercises the live `enabled-locale` / `currency` / `CURRENCY_TIMEZONE`
+ * validation helpers, which is why it's kept. The ONLY config env var that
+ * survives is `NEXT_PUBLIC_DEFAULT_LOCALE` (edge URL-root locale); the old
+ * `NEXT_PUBLIC_CANONICAL_LOCALE` / `NEXT_PUBLIC_ENABLED_LOCALES` /
+ * `NEXT_PUBLIC_CURRENCY` env vars were dropped. `NEXT_PUBLIC_ENABLED_LOCALES`
+ * / `NEXT_PUBLIC_CURRENCY` are parsed here purely to drive the validation-path
+ * test; do NOT treat them as live deployment config.
+ */
 export function parseDeploymentConfig(
   env: Record<string, string | undefined>
 ): DeploymentConfig {
@@ -89,13 +97,6 @@ export function parseDeploymentConfig(
     );
   }
 
-  const canonicalLocale = env.NEXT_PUBLIC_CANONICAL_LOCALE?.trim() || "en";
-  if (!enabledLocales.includes(canonicalLocale)) {
-    throw new Error(
-      `[deployment-config] NEXT_PUBLIC_CANONICAL_LOCALE "${canonicalLocale}" is not in the enabled set [${enabledLocales.join(", ")}]`
-    );
-  }
-
   const currency = (env.NEXT_PUBLIC_CURRENCY?.trim() || "THB").toUpperCase();
   if (!isValidCurrencyCode(currency)) {
     throw new Error(
@@ -107,7 +108,6 @@ export function parseDeploymentConfig(
 
   return Object.freeze({
     defaultLocale,
-    canonicalLocale,
     currency,
     timezone,
     enabledLocales: Object.freeze(enabledLocales) as readonly string[],

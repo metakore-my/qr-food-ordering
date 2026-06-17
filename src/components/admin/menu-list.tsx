@@ -10,6 +10,12 @@ import { CategoryForm } from "@/components/admin/category-form";
 import { MenuItemForm } from "@/components/admin/menu-item-form";
 import { MenuImportModal } from "@/components/admin/menu-import-modal";
 import { Pagination, paginate } from "@/components/ui/pagination";
+import { usePersistedPrefs } from "@/hooks/use-persisted-prefs";
+import {
+  menuListPrefsStore,
+  type MenuSortField,
+  type MenuSortDirection,
+} from "@/lib/admin-ui-prefs";
 
 interface CategoryTranslation {
   id: number;
@@ -73,9 +79,9 @@ interface MenuListProps {
   initialMenuItems: MenuItem[];
 }
 
-type SortField = "sortOrder" | "name" | "price" | "availability" | "dateAdded";
-type SortDirection = "asc" | "desc";
-type ViewMode = "grid" | "list";
+// Reuse the persisted-prefs types (single source of truth — see admin-ui-prefs.ts).
+type SortField = MenuSortField;
+type SortDirection = MenuSortDirection;
 
 export function MenuList({
   initialCategories,
@@ -105,10 +111,11 @@ export function MenuList({
   const [duplicateFrom, setDuplicateFrom] = useState<MenuItem | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
 
-  // View, sort, selection states
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [sortField, setSortField] = useState<SortField>("sortOrder");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  // View + sort are STICKY per-device prefs (persist across SPA navigation away
+  // from /admin/menu-management and back — plain useState reset them every visit).
+  // selectedIds stays ephemeral (a transient bulk-select gesture).
+  const [menuPrefs, setMenuPrefs] = usePersistedPrefs(menuListPrefsStore);
+  const { viewMode, sortField, sortDirection } = menuPrefs;
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [categoryExpanded, setCategoryExpanded] = useState(false);
@@ -180,8 +187,7 @@ export function MenuList({
 
   function handleSortOptionChange(value: string) {
     const [field, direction] = value.split("-") as [SortField, SortDirection];
-    setSortField(field);
-    setSortDirection(direction);
+    setMenuPrefs({ sortField: field, sortDirection: direction });
     setPage(1);
   }
 
@@ -799,7 +805,7 @@ export function MenuList({
               </div>
               <div className="flex items-center gap-px rounded-md border border-gray-300">
                 <button
-                  onClick={() => setViewMode("grid")}
+                  onClick={() => setMenuPrefs({ viewMode: "grid" })}
                   aria-pressed={viewMode === "grid"}
                   className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-l-md px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
                     viewMode === "grid"
@@ -813,7 +819,7 @@ export function MenuList({
                   </svg>
                 </button>
                 <button
-                  onClick={() => setViewMode("list")}
+                  onClick={() => setMenuPrefs({ viewMode: "list" })}
                   aria-pressed={viewMode === "list"}
                   className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-r-md border-l border-gray-300 px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
                     viewMode === "list"

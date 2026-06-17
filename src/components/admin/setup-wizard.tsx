@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { KNOWN_LOCALES } from "@/lib/deployment-config";
@@ -34,7 +35,7 @@ const LOCALE_LABELS: Record<string, string> = {
 export function SetupWizard() {
   const t = useTranslations("admin.setup");
   const locale = useLocale();
-  const { capabilities } = useConfig();
+  const { capabilities, defaultLocale: cfgDefaultLocale, enabledLocales: cfgEnabledLocales } = useConfig();
   // Renamed to avoid colliding with the confirm-password field state (`confirm`).
   const confirmDialog = useConfirm();
 
@@ -52,11 +53,30 @@ export function SetupWizard() {
   // name is `appName`). Blank → falls back to the main name.
   const [appNameI18n, setAppNameI18n] = useState<Record<string, string>>({});
   const [currency, setCurrency] = useState<(typeof CURRENCIES)[number]>("MYR");
-  const [defaultLocale, setDefaultLocale] = useState("en");
-  const [enabledLocales, setEnabledLocales] = useState<string[]>([
-    ...KNOWN_LOCALES,
-  ]);
+  // Pre-select the deployment's configured main language + region set (seeded
+  // from NEXT_PUBLIC_DEFAULT_LOCALE → DB → ConfigProvider). Without this the
+  // wizard hardcoded "en", so a `ms` deploy opened the wizard on a /ms URL with
+  // English pre-selected — a mismatch with the configured locale. Fall back to
+  // "en" / all KNOWN_LOCALES if config is somehow empty. The operator can still
+  // change either here; this only sets the initial selection.
+  const [defaultLocale, setDefaultLocale] = useState(
+    cfgDefaultLocale && (KNOWN_LOCALES as readonly string[]).includes(cfgDefaultLocale)
+      ? cfgDefaultLocale
+      : "en",
+  );
+  const [enabledLocales, setEnabledLocales] = useState<string[]>(
+    cfgEnabledLocales?.length ? [...cfgEnabledLocales] : [...KNOWN_LOCALES],
+  );
   const [theme, setTheme] = useState<(typeof THEMES)[number]>("green");
+
+  // Clear any leftover error whenever the step changes. goNext/goBack already
+  // setError(null), but this guarantees a stale validation error (e.g. a prior
+  // "restaurant name is required" from a Finish attempt) can never bleed onto a
+  // freshly-entered step — the error only appears after a fresh validation on
+  // the current step.
+  useEffect(() => {
+    setError(null);
+  }, [step]);
 
   // FULL LIVE PREVIEW: apply the selected theme's primary ramp to the whole page
   // by overriding the `--color-primary-*` CSS vars on <html> (the same vars the
@@ -146,6 +166,18 @@ export function SetupWizard() {
       setError(t("errorDefaultNotEnabled"));
       return false;
     }
+    // Every ENABLED non-default locale's name is required too — enabling a
+    // language means committing to a name for it (the field is no longer
+    // optional). Block Finish until each is filled.
+    for (const loc of enabledLocales) {
+      if (loc === defaultLocale) continue;
+      if (!(appNameI18n[loc] ?? "").trim()) {
+        setError(
+          t("errorAppNameForRequired", { language: LOCALE_LABELS[loc] ?? loc })
+        );
+        return false;
+      }
+    }
     return true;
   }
 
@@ -219,10 +251,27 @@ export function SetupWizard() {
 
       if (res.status === 201) {
         setDone(true);
-        // Full reload so the new theme/config (and re-evaluated setup gate) take
-        // effect on the login page.
+        // Auto-sign-in the admin we just created so they land on the dashboard
+        // directly (no manual login step). The setup route does NOT set a session,
+        // so we sign in here with the same credentials. We then FULL-RELOAD to the
+        // dashboard (not router.push) so the new theme/currency/locale config the
+        // wizard just persisted takes effect — a client nav would keep the stale
+        // ConfigProvider. NOTE: a Turnstile token is single-use and was already
+        // spent on the setup POST, so when Turnstile is ON this sign-in will fail
+        // its challenge — we fall back to the login page, where the admin solves a
+        // fresh one. Any sign-in failure (spent token, transient) falls back the
+        // same way; the admin already exists, they just log in manually.
+        const signInResult = await signIn("credentials", {
+          username: username.trim(),
+          password,
+          turnstileToken: turnstileToken ?? "",
+          redirect: false,
+        });
+        const dest = signInResult && !signInResult.error
+          ? `/${locale}/admin/dashboard`
+          : `/${locale}/admin/login`;
         setTimeout(() => {
-          window.location.href = `/${locale}/admin/login`;
+          window.location.href = dest;
         }, 1200);
         return;
       }
@@ -450,7 +499,8 @@ export function SetupWizard() {
                     />
                   </div>
 
-                  {/* Per-language app names (optional, for non-default enabled locales) */}
+                  {/* Per-language app names — REQUIRED for each enabled non-default
+                      locale (enabling a language commits to a name for it). */}
                   {enabledLocales
                     .filter((loc) => loc !== defaultLocale)
                     .map((loc) => (
@@ -465,7 +515,9 @@ export function SetupWizard() {
                           onChange={(e) =>
                             setAppNameI18n((prev) => ({ ...prev, [loc]: e.target.value }))
                           }
-                          placeholder={t("appNameForPlaceholder")}
+                          placeholder={t("appNameForPlaceholder", {
+                            language: LOCALE_LABELS[loc] ?? loc,
+                          })}
                           className={inputClass}
                         />
                       </div>

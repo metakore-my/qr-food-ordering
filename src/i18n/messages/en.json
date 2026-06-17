@@ -85,6 +85,7 @@
     "errorCartChanged": "Some items were removed from your cart because they are no longer on the menu. Please review your cart and tap Place Order again.",
     "errorOptionUnavailable": "An option you selected is no longer available and was removed from your cart. Please review your cart and tap Place Order again.",
     "failedToAddItem": "Couldn't add item. Please try again.",
+    "addedToCart": "Added {name} {count, plural, one {(×#)} other {(×#)}}",
     "unknownItem": "Unknown item",
     "decreaseQuantity": "Decrease quantity",
     "increaseQuantity": "Increase quantity",
@@ -94,7 +95,8 @@
     "itemUnavailable": "Unavailable",
     "hasUnavailableItems": "Some items are no longer available. Remove them to place your order.",
     "viewCart": "View cart",
-    "viewOrderStatus": "View order status"
+    "viewOrderStatus": "View order status",
+    "orderSummary": "{count, plural, one {# item} other {# items}} · {total}"
   },
   "order": {
     "placed": "Order placed!",
@@ -190,8 +192,8 @@
       "restaurantSubtitle": "You can change all of this later in Settings.",
       "appName": "Restaurant name",
       "appNamePlaceholder": "e.g. Kopi & Co",
-      "appNameFor": "Restaurant name in {language} (optional)",
-      "appNameForPlaceholder": "Leave blank to use the main-language name",
+      "appNameFor": "Restaurant name in {language}",
+      "appNameForPlaceholder": "Enter the restaurant name in {language}",
       "permanentNotice": "Currency can't be changed after setup. The language you pick now becomes the permanent fallback for saved records — you can still change the display language later.",
       "confirmFinish": "Finish setup with app name \"{appName}\", currency {currency}, and {mainLanguage} as the primary language? Currency is permanent and can't be changed later, and {mainLanguage} becomes the permanent fallback for saved records (you can still change the display language afterward).",
       "currency": "Currency",
@@ -215,6 +217,7 @@
       "errorPasswordDigit": "Password must contain at least one digit.",
       "errorPasswordMismatch": "Passwords do not match.",
       "errorAppNameRequired": "Restaurant name is required.",
+      "errorAppNameForRequired": "Restaurant name in {language} is required.",
       "errorDefaultNotEnabled": "The default language must be one of the enabled languages.",
       "errorEnabledEmpty": "Select at least one enabled language.",
       "errorCaptcha": "Please complete the CAPTCHA.",

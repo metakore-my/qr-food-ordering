@@ -38,6 +38,11 @@ export const MenuCard = memo(function MenuCard({
   const money = (amount: number) =>
     formatMoneyWith(amount, { currency: cfg.currency, decimals: cfg.decimals, locale: cfg.defaultLocale });
   const [quantity, setQuantity] = useState(1);
+  // If the image fails to load (flaky mobile data, deleted/missing object), fall
+  // back to the compact no-image card layout instead of leaving a tall empty
+  // gray box. `hasImage` is the single gate used everywhere the URL was checked.
+  const [imgError, setImgError] = useState(false);
+  const hasImage = !!item.imageUrl && !imgError;
 
   function handleDecrement() {
     setQuantity((prev) => Math.max(1, prev - 1));
@@ -100,7 +105,7 @@ export const MenuCard = memo(function MenuCard({
   return (
     <div className={`relative overflow-hidden rounded-xl bg-white shadow-sm transition-shadow ${item.isAvailable ? "hover:shadow-md" : "opacity-75"}`}>
       {/* Badges */}
-      {(item.isFeatured || item.isCombo) && item.imageUrl && (
+      {(item.isFeatured || item.isCombo) && hasImage && (
         <div className="absolute top-2 left-2 z-10 flex gap-1.5">
           {item.isFeatured && (
             <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 shadow-sm">
@@ -114,15 +119,16 @@ export const MenuCard = memo(function MenuCard({
           )}
         </div>
       )}
-      {item.imageUrl && (
+      {hasImage && (
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
           <Image
-            src={item.imageUrl}
+            src={item.imageUrl!}
             alt={item.name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className={`object-cover ${!item.isAvailable ? "grayscale" : ""}`}
             priority={priority}
+            onError={() => setImgError(true)}
           />
           {!item.isAvailable && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -137,17 +143,17 @@ export const MenuCard = memo(function MenuCard({
       <div className="p-4">
         <div className="flex items-center gap-2">
           <h3 className={`text-base font-semibold ${item.isAvailable ? "text-gray-900" : "text-gray-400"}`}>{item.name}</h3>
-          {item.isFeatured && !item.imageUrl && (
+          {item.isFeatured && !hasImage && (
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
               {tMenu("recommended")}
             </span>
           )}
-          {item.isCombo && !item.imageUrl && (
+          {item.isCombo && !hasImage && (
             <span className="rounded-full bg-primary-500 px-2 py-0.5 text-xs font-semibold text-white">
               {tMenu("combo")}
             </span>
           )}
-          {!item.isAvailable && !item.imageUrl && (
+          {!item.isAvailable && !hasImage && (
             <span className="rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-semibold text-gray-500">
               {outOfStockLabel}
             </span>

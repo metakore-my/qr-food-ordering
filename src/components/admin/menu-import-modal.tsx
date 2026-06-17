@@ -240,8 +240,13 @@ export function MenuImportModal({
           images: images.map((img) => img.base64),
           existingCategories: initialCategories
             .map((cat) => {
-              const en = cat.names.find((n) => n.locale === "en");
-              return en?.name || cat.names[0]?.name || "";
+              // Anchor the dedup hint on the printed-menu SOURCE language
+              // (= sourceLocale, the canonical/default market locale), not a
+              // hardcoded "en". On a non-en deploy (e.g. an ms-only menu) the
+              // English row may not exist, so an "en" lookup found nothing and
+              // the AI got no existing-category context → duplicate categories.
+              const src = cat.names.find((n) => n.locale === sourceLocale);
+              return src?.name || cat.names[0]?.name || "";
             })
             .filter(Boolean),
         }),

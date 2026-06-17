@@ -5,6 +5,47 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-06-17
+
+### Added
+
+- Adding an item to the cart now shows a brief on-screen confirmation (and
+  announces it to screen readers), so it's clear the item went in.
+- The "order placed" screen now recaps the order — item count and amount — so
+  the customer can confirm what they just submitted.
+- The daily cleanup now removes orphaned menu images from storage (images left
+  behind when an item or its photo is replaced/deleted), so storage doesn't grow
+  unbounded over time.
+
+### Changed
+
+- After finishing the first-run setup wizard, the new administrator is now signed
+  in automatically and taken straight to the dashboard, instead of being sent to
+  the login page to sign in by hand. (If a CAPTCHA is enabled, the one-time
+  challenge is consumed by setup, so that case still finishes at the login page.)
+- In the setup wizard, the restaurant name for each enabled additional language is
+  now required (you must fill it in before finishing), rather than optional.
+- The cart's "Place Order" button now stays pinned to the bottom of the screen,
+  so it's reachable without scrolling past a long order.
+- Admin menu view/sort and the Reports date range, tab, and status filter are now
+  remembered as you move between admin pages, instead of resetting each visit.
+
+### Fixed
+
+- A deployment configured for a non-English main language now starts up — and
+  opens the first-run setup wizard — in that language, instead of always
+  defaulting to English. The setup wizard pre-selects the configured main
+  language and region set.
+- The kitchen dashboard's "tap to enable order sound" no longer reverts every
+  time you navigate away and back — once enabled, it stays enabled for the
+  session.
+- Lowering a cart item's quantity to its minimum no longer silently deletes the
+  line; use the remove button to take it out.
+- A menu image that fails to load no longer leaves a large empty gap — the card
+  falls back to its compact, image-less layout.
+- AI menu import no longer discards the Simplified Chinese name when importing
+  from an English-language menu photo — the extracted Chinese name is kept.
+
 ## [1.0.0] - 2026-06-15
 
 First public release. As an initial release, everything is **Added** — there is no
@@ -113,4 +154,5 @@ prior version to change, remove, or fix against.
 - Responsive layout verified across 320px–1440px (touch targets, iOS input zoom,
   safe-area insets, sticky elements).
 
+[1.0.1]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.1
 [1.0.0]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.0

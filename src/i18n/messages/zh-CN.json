@@ -85,6 +85,7 @@
     "errorCartChanged": "部分菜品已不在菜单中，已从您的购物车中移除。请检查购物车并重新点击「下单」。",
     "errorOptionUnavailable": "您所选的某个选项已不可用，已从您的购物车中移除。请检查购物车并重新点击「下单」。",
     "failedToAddItem": "添加商品失败，请重试。",
+    "addedToCart": "{name} {count, plural, one {(×#)} other {(×#)}} 已加入购物车",
     "unknownItem": "未知商品",
     "decreaseQuantity": "减少数量",
     "increaseQuantity": "增加数量",
@@ -94,7 +95,8 @@
     "itemUnavailable": "不可用",
     "hasUnavailableItems": "部分商品已不可用。请先移除后再下单。",
     "viewCart": "查看购物车",
-    "viewOrderStatus": "查看订单状态"
+    "viewOrderStatus": "查看订单状态",
+    "orderSummary": "{count, plural, one {# 件} other {# 件}} · {total}"
   },
   "order": {
     "placed": "订单已提交！",
@@ -211,6 +213,7 @@
       "errorPasswordDigit": "密码必须包含至少一个数字。",
       "errorPasswordMismatch": "两次输入的密码不一致。",
       "errorAppNameRequired": "餐厅名称不能为空。",
+      "errorAppNameForRequired": "{language} 的餐厅名称不能为空。",
       "errorDefaultNotEnabled": "默认语言必须包含在已启用的语言中。",
       "errorEnabledEmpty": "至少需要启用一种语言。",
       "errorCaptcha": "请完成验证码。",
@@ -218,8 +221,8 @@
       "alreadyCompleted": "初始化已完成，请直接登录。",
       "goToLogin": "前往登录",
       "success": "设置完成！正在跳转到登录页...",
-      "appNameFor": "{language} 的餐厅名称（可选）",
-      "appNameForPlaceholder": "留空则使用主语言名称",
+      "appNameFor": "{language} 的餐厅名称",
+      "appNameForPlaceholder": "请输入 {language} 的餐厅名称",
       "permanentNotice": "货币在完成设置后不可更改。您所选的语言将成为已保存记录的永久回退语言——之后仍可更改显示语言。",
       "confirmFinish": "确认以应用名称“{appName}”、货币 {currency}、主语言 {mainLanguage} 完成设置？货币一经设定，无法更改；{mainLanguage} 将成为已保存记录的永久回退语言（之后仍可更改显示语言）。"
     },

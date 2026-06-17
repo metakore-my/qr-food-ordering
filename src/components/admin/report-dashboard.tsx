@@ -4,26 +4,36 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { AnalyticsDashboard, type ReportData } from "./analytics-dashboard";
 import { OrderHistoryTab } from "./order-history-tab";
+import { usePersistedPrefs } from "@/hooks/use-persisted-prefs";
+import { reportPrefsStore, type ReportTab } from "@/lib/admin-ui-prefs";
 
 const RANGES = ["1h", "3h", "12h", "1d", "7d", "30d", "90d"] as const;
 
-type Tab = "analytics" | "history";
+type Tab = ReportTab;
 
 export function ReportDashboard() {
   const t = useTranslations("admin.reports");
   const tCommon = useTranslations("common");
   const locale = useLocale();
-  const [range, setRange] = useState<string>("1d");
+  // STICKY per-device prefs (persist across SPA navigation away from /admin/reports
+  // and back — plain useState reset the chosen range/tab/filter every visit). The
+  // custom from/to DATES stay ephemeral on purpose: a stale absolute window is
+  // rarely what the operator wants later, so custom mode reverts to empty pickers
+  // (rangeMode itself persists, the dates don't).
+  const [reportPrefs, setReportPrefs] = usePersistedPrefs(reportPrefsStore);
+  const { range, rangeMode, activeTab, historyStatusFilter } = reportPrefs;
+  const setRange = (r: string) => setReportPrefs({ range: r });
+  const setRangeMode = (m: "preset" | "custom") => setReportPrefs({ rangeMode: m });
+  const setActiveTab = (tab: Tab) => setReportPrefs({ activeTab: tab });
+  const setHistoryStatusFilter = (f: string) =>
+    setReportPrefs({ historyStatusFilter: f });
   // N1: "custom" range mode with explicit from/to dates, alongside the presets.
-  const [rangeMode, setRangeMode] = useState<"preset" | "custom">("preset");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<Tab>("analytics");
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [historyStatusFilter, setHistoryStatusFilter] = useState<string>("ALL");
 
   // Build the range query string shared by the analytics fetch + both exports.
   // Custom mode requires both dates; otherwise falls back to the preset.

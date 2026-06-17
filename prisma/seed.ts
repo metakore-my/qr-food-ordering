@@ -3,6 +3,7 @@ import { PrismaClient, UserRole } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import bcrypt from "bcryptjs";
 import { assertValidSeedPassword } from "../src/lib/validations";
+import { KNOWN_LOCALES } from "../src/lib/deployment-config";
 
 function parseDatabaseUrl(url: string) {
   const parsed = new URL(url);
@@ -26,20 +27,73 @@ const adapter = new PrismaMariaDb({
 const prisma = new PrismaClient({ adapter });
 
 /**
+ * The pre-wizard main locale follows `NEXT_PUBLIC_DEFAULT_LOCALE` — the single
+ * config env var and the edge URL-root locale (see CLAUDE.md / routing.ts). The
+ * seed's `default_locale` + `canonical_locale` MUST agree with it: otherwise a
+ * `NEXT_PUBLIC_DEFAULT_LOCALE=ms` deploy edge-routes `/` → `/ms` but the seeded
+ * DB says the main/canonical locale is `en`, so the (pre-setup) wizard renders
+ * English-canonical on a `/ms/...` URL. Falls back to `en` when the env var is
+ * unset or not a KNOWN_LOCALE. The chosen locale is also forced into
+ * `enabled_locales` so the main language can never be a disabled one.
+ */
+const DEFAULT_LOCALE = (() => {
+  const raw = process.env.NEXT_PUBLIC_DEFAULT_LOCALE?.trim();
+  return raw && (KNOWN_LOCALES as readonly string[]).includes(raw) ? raw : "en";
+})();
+
+const ENABLED_LOCALES = (() => {
+  // Full region set, but guarantee the chosen main locale is present + first.
+  const rest = KNOWN_LOCALES.filter((l) => l !== DEFAULT_LOCALE);
+  return [DEFAULT_LOCALE, ...rest].join(",");
+})();
+
+/**
+ * The generic "restaurant" noun per locale — the pre-wizard default app name.
+ * `app_name` is seeded in the deployment's DEFAULT_LOCALE and `app_name_i18n`
+ * carries the OTHER enabled locales, so every language tab shows a sensible
+ * localized default (Restoran / ร้านอาหาร / 餐厅 …) until the operator sets a
+ * real name in the wizard. Covers all KNOWN_LOCALES.
+ */
+const RESTAURANT_NAME: Record<string, string> = {
+  en: "Restaurant",
+  ms: "Restoran",
+  th: "ร้านอาหาร",
+  vi: "Nhà hàng",
+  "zh-CN": "餐厅",
+  "zh-TW": "餐廳",
+};
+
+const APP_NAME = RESTAURANT_NAME[DEFAULT_LOCALE] ?? "Restaurant";
+
+// Per-locale names for every enabled locale EXCEPT the default (whose name lives
+// in `app_name`). Mirrors the wizard/settings shape: a JSON map keyed by enabled
+// non-default locales. `resolveAppName` falls back to `app_name` for any locale
+// missing here.
+const APP_NAME_I18N = JSON.stringify(
+  Object.fromEntries(
+    ENABLED_LOCALES.split(",")
+      .filter((loc) => loc !== DEFAULT_LOCALE && RESTAURANT_NAME[loc])
+      .map((loc) => [loc, RESTAURANT_NAME[loc]])
+  )
+);
+
+/**
  * Default SystemSetting rows for a fresh self-host deployment.
  *
  * Always upserted with an EMPTY `update: {}` so re-running the seed never
  * clobbers values an operator has changed in the admin console — it only fills
  * in rows that don't exist yet. Defaults match the project default deployment
- * (English UI, MYR currency, the 6-locale region set, green theme).
+ * (MYR currency, the 6-locale region set, green theme); the main/canonical
+ * locale follows NEXT_PUBLIC_DEFAULT_LOCALE (see DEFAULT_LOCALE above).
  */
 const DEFAULT_SETTINGS: Record<string, string> = {
   maintenance_mode: "false",
-  app_name: "Restaurant",
+  app_name: APP_NAME,
+  app_name_i18n: APP_NAME_I18N,
   currency: "MYR",
-  default_locale: "en",
-  canonical_locale: "en",
-  enabled_locales: "en,th,vi,zh-CN,zh-TW,ms",
+  default_locale: DEFAULT_LOCALE,
+  canonical_locale: DEFAULT_LOCALE,
+  enabled_locales: ENABLED_LOCALES,
   brand_theme: "green",
 };
 

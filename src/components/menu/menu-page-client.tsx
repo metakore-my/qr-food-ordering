@@ -73,7 +73,22 @@ export function MenuPageClient({
   const { addItem, itemCount, total } = useCart(sessionId);
   const [optionsItem, setOptionsItem] = useState<MenuItemData | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
+  const [addedMsg, setAddedMsg] = useState<string | null>(null);
   const tCart = useTranslations("cart");
+
+  // The server pre-localizes `item.name` (menu page's getItemName: locale →
+  // canonical → any), so the client already has the viewer's name — just look
+  // the item up by id to name it in the add-to-cart confirmation.
+  const nameById = useCallback(
+    (menuItemId: number): string => {
+      for (const cat of categories) {
+        const f = cat.items.find((i) => i.id === menuItemId);
+        if (f) return f.name;
+      }
+      return featuredItems.find((i) => i.id === menuItemId)?.name ?? "";
+    },
+    [categories, featuredItems]
+  );
 
   const enhancedCategories = useMemo(() =>
     categories.map(cat => ({
@@ -91,14 +106,22 @@ export function MenuPageClient({
     ) => {
       try {
         await addItem(menuItemId, quantity, selectedOptions);
+        // Confirm the add — a phone customer can otherwise miss the cart-bar
+        // change. This div is the aria-live region too, so SR users hear it.
+        setAddError(null);
+        setAddedMsg(
+          tCart("addedToCart", { name: nameById(menuItemId), count: quantity })
+        );
+        setTimeout(() => setAddedMsg(null), 2500);
       } catch {
         // Surface a transient localized error instead of silently swallowing
         // (e.g. session expired, item just went unavailable).
+        setAddedMsg(null);
         setAddError(tCart("failedToAddItem"));
         setTimeout(() => setAddError(null), 4000);
       }
     },
-    [addItem, tCart]
+    [addItem, tCart, nameById]
   );
 
   const handleAddToCartClick = useCallback(
@@ -135,13 +158,39 @@ export function MenuPageClient({
 
   return (
     <>
-      {/* Transient add-to-cart error toast */}
+      {/* Transient add-to-cart error toast (assertive). */}
       {addError && (
         <div
           role="alert"
           className="fixed inset-x-4 top-4 z-50 mx-auto max-w-sm rounded-lg bg-red-600 px-4 py-3 text-center text-sm font-medium text-white shadow-lg"
         >
           {addError}
+        </div>
+      )}
+
+      {/* Transient add-to-cart success toast. Polite aria-live so screen readers
+          announce the add without interrupting; sighted users get the green
+          confirmation a phone customer would otherwise miss. */}
+      {addedMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-x-4 top-4 z-50 mx-auto flex max-w-sm items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-3 text-center text-sm font-medium text-white shadow-lg"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 flex-shrink-0"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {addedMsg}
         </div>
       )}
 

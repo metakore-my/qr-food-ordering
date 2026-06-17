@@ -85,6 +85,7 @@
     "errorCartChanged": "部分商品已從購物車中移除，因為它們已不在菜單上。請確認購物車內容後再次點擊「下單」。",
     "errorOptionUnavailable": "您所選擇的某個選項已無法使用，已從購物車中移除。請確認購物車內容後再次點擊「下單」。",
     "failedToAddItem": "無法加入商品，請再試一次。",
+    "addedToCart": "已將 {name} {count, plural, one {(×#)} other {(×#)}} 加入購物車",
     "unknownItem": "未知商品",
     "decreaseQuantity": "減少數量",
     "increaseQuantity": "增加數量",
@@ -94,7 +95,8 @@
     "itemUnavailable": "不可用",
     "hasUnavailableItems": "部分商品已不可用。請先移除後再下單。",
     "viewCart": "查看購物車",
-    "viewOrderStatus": "查看訂單狀態"
+    "viewOrderStatus": "查看訂單狀態",
+    "orderSummary": "{count, plural, one {# 件} other {# 件}} · {total}"
   },
   "order": {
     "placed": "訂單已提交！",
@@ -211,6 +213,7 @@
       "errorPasswordDigit": "密碼必須包含至少一個數字。",
       "errorPasswordMismatch": "兩次輸入的密碼不一致。",
       "errorAppNameRequired": "餐廳名稱為必填。",
+      "errorAppNameForRequired": "{language} 的餐廳名稱為必填。",
       "errorDefaultNotEnabled": "預設語言必須在已啟用的語言清單中。",
       "errorEnabledEmpty": "請至少選擇一種啟用語言。",
       "errorCaptcha": "請完成 CAPTCHA 驗證。",
@@ -218,8 +221,8 @@
       "alreadyCompleted": "設定已完成，請直接登入。",
       "goToLogin": "前往登入",
       "success": "設定完成！正在導向登入頁面...",
-      "appNameFor": "{language} 的餐廳名稱（選填）",
-      "appNameForPlaceholder": "留空則沿用主語言的名稱",
+      "appNameFor": "{language} 的餐廳名稱",
+      "appNameForPlaceholder": "請輸入 {language} 的餐廳名稱",
       "permanentNotice": "貨幣在完成設定後便無法更改。您現在所選的語言將成為已儲存記錄的永久備用語言——顯示語言日後仍可更改。",
       "confirmFinish": "確定以餐廳名稱「{appName}」、貨幣 {currency}、主語言 {mainLanguage} 完成設定嗎？貨幣為永久設定，日後無法更改，且 {mainLanguage} 將成為已儲存記錄的永久備用語言（顯示語言日後仍可更改）。"
     },

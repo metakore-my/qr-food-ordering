@@ -85,6 +85,7 @@
     "errorCartChanged": "Một số món đã bị xóa khỏi giỏ hàng vì không còn trong thực đơn. Vui lòng kiểm tra lại giỏ hàng và nhấn Đặt món một lần nữa.",
     "errorOptionUnavailable": "Một tùy chọn bạn đã chọn không còn khả dụng và đã bị xóa khỏi giỏ hàng. Vui lòng kiểm tra lại giỏ hàng và nhấn Đặt món một lần nữa.",
     "failedToAddItem": "Không thể thêm món. Vui lòng thử lại.",
+    "addedToCart": "Đã thêm {name} {count, plural, one {(×#)} other {(×#)}} vào giỏ",
     "unknownItem": "Món không xác định",
     "decreaseQuantity": "Giảm số lượng",
     "increaseQuantity": "Tăng số lượng",
@@ -94,7 +95,8 @@
     "itemUnavailable": "Không có sẵn",
     "hasUnavailableItems": "Một số món đã không còn. Hãy xóa chúng để tiến hành đặt món.",
     "viewCart": "Xem giỏ hàng",
-    "viewOrderStatus": "Xem trạng thái đơn"
+    "viewOrderStatus": "Xem trạng thái đơn",
+    "orderSummary": "{count, plural, one {# món} other {# món}} · {total}"
   },
   "order": {
     "placed": "Đặt món thành công!",
@@ -211,6 +213,7 @@
       "errorPasswordDigit": "Mật khẩu phải có ít nhất một chữ số.",
       "errorPasswordMismatch": "Mật khẩu xác nhận không khớp.",
       "errorAppNameRequired": "Vui lòng nhập tên nhà hàng.",
+      "errorAppNameForRequired": "Tên nhà hàng bằng {language} là bắt buộc.",
       "errorDefaultNotEnabled": "Ngôn ngữ mặc định phải nằm trong danh sách ngôn ngữ được bật.",
       "errorEnabledEmpty": "Hãy chọn ít nhất một ngôn ngữ được bật.",
       "errorCaptcha": "Vui lòng hoàn thành CAPTCHA.",
@@ -218,8 +221,8 @@
       "alreadyCompleted": "Thiết lập đã hoàn tất — vui lòng đăng nhập.",
       "goToLogin": "Đến trang đăng nhập",
       "success": "Thiết lập hoàn tất! Đang chuyển đến trang đăng nhập...",
-      "appNameFor": "Tên nhà hàng bằng {language} (tùy chọn)",
-      "appNameForPlaceholder": "Để trống để dùng tên theo ngôn ngữ chính",
+      "appNameFor": "Tên nhà hàng bằng {language}",
+      "appNameForPlaceholder": "Nhập tên nhà hàng bằng {language}",
       "permanentNotice": "Đơn vị tiền tệ không thể thay đổi sau khi thiết lập. Ngôn ngữ bạn chọn bây giờ sẽ trở thành ngôn ngữ dự phòng vĩnh viễn cho các bản ghi đã lưu — bạn vẫn có thể thay đổi ngôn ngữ hiển thị sau.",
       "confirmFinish": "Hoàn tất thiết lập với tên nhà hàng \"{appName}\", đơn vị tiền tệ {currency} và {mainLanguage} làm ngôn ngữ chính? Đơn vị tiền tệ là vĩnh viễn và không thể thay đổi sau này, và {mainLanguage} sẽ trở thành ngôn ngữ dự phòng vĩnh viễn cho các bản ghi đã lưu (bạn vẫn có thể thay đổi ngôn ngữ hiển thị sau)."
     },

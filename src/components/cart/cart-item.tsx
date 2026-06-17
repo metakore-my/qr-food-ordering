@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import type { CartItem as CartItemType } from "@/hooks/use-cart";
@@ -94,6 +95,9 @@ export function CartItemRow({
   const tCart = useTranslations("cart");
   const cfg = useConfig();
   const confirm = useConfirm();
+  // Collapse the thumbnail if its image fails to load (matches menu-card) — a
+  // broken-image glyph in the 64px box looks worse than no thumbnail.
+  const [imgError, setImgError] = useState(false);
   const money = (amount: number) =>
     formatMoneyWith(amount, { currency: cfg.currency, decimals: cfg.decimals, locale: cfg.defaultLocale });
   const name = getItemName(item.menuItem.names, locale, tCart("unknownItem"), cfg.canonicalLocale);
@@ -123,8 +127,8 @@ export function CartItemRow({
     <div className={`rounded-lg bg-white p-3 shadow-sm${isUnavailable ? " opacity-50" : ""}`}>
       {/* Top row: image + details + remove button */}
       <div className="flex items-start gap-3">
-        {/* Image thumbnail — only rendered when image exists */}
-        {item.menuItem.imageUrl && (
+        {/* Image thumbnail — only rendered when an image exists AND loads. */}
+        {item.menuItem.imageUrl && !imgError && (
           <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
             <Image
               src={item.menuItem.imageUrl}
@@ -132,6 +136,7 @@ export function CartItemRow({
               fill
               sizes="64px"
               className="object-cover"
+              onError={() => setImgError(true)}
             />
           </div>
         )}
@@ -187,7 +192,8 @@ export function CartItemRow({
           <button
             type="button"
             onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-            className="flex h-11 w-11 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
+            disabled={item.quantity <= 1}
+            className="flex h-11 w-11 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-300"
             aria-label={tCart("decreaseQuantity")}
           >
             <svg

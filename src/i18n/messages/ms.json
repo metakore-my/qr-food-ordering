@@ -85,6 +85,7 @@
     "errorCartChanged": "Sesetengah item telah dibuang daripada troli anda kerana ia tidak lagi tersedia dalam menu. Sila semak semula troli anda dan ketik Hantar Pesanan sekali lagi.",
     "errorOptionUnavailable": "Pilihan yang anda pilih tidak lagi tersedia dan telah dibuang daripada troli anda. Sila semak semula troli anda dan ketik Hantar Pesanan sekali lagi.",
     "failedToAddItem": "Tidak dapat menambah item. Sila cuba lagi.",
+    "addedToCart": "Ditambah {name} {count, plural, one {(×#)} other {(×#)}}",
     "unknownItem": "Item tidak dikenali",
     "decreaseQuantity": "Kurangkan kuantiti",
     "increaseQuantity": "Tambah kuantiti",
@@ -94,7 +95,8 @@
     "itemUnavailable": "Tidak tersedia",
     "hasUnavailableItems": "Sesetengah item tidak lagi tersedia. Buang item tersebut untuk menghantar pesanan anda.",
     "viewCart": "Lihat troli",
-    "viewOrderStatus": "Lihat status pesanan"
+    "viewOrderStatus": "Lihat status pesanan",
+    "orderSummary": "{count, plural, one {# item} other {# item}} · {total}"
   },
   "order": {
     "placed": "Pesanan berjaya dihantar!",
@@ -211,6 +213,7 @@
       "errorPasswordDigit": "Kata laluan mesti mengandungi sekurang-kurangnya satu digit.",
       "errorPasswordMismatch": "Kata laluan tidak sepadan.",
       "errorAppNameRequired": "Nama restoran diperlukan.",
+      "errorAppNameForRequired": "Nama restoran dalam {language} diperlukan.",
       "errorDefaultNotEnabled": "Bahasa lalai mesti merupakan salah satu daripada bahasa yang diaktifkan.",
       "errorEnabledEmpty": "Pilih sekurang-kurangnya satu bahasa yang diaktifkan.",
       "errorCaptcha": "Sila lengkapkan CAPTCHA.",
@@ -218,8 +221,8 @@
       "alreadyCompleted": "Persediaan telah selesai — sila log masuk.",
       "goToLogin": "Pergi ke log masuk",
       "success": "Persediaan selesai! Mengalih ke log masuk...",
-      "appNameFor": "Nama restoran dalam {language} (pilihan)",
-      "appNameForPlaceholder": "Biarkan kosong untuk menggunakan nama bahasa utama",
+      "appNameFor": "Nama restoran dalam {language}",
+      "appNameForPlaceholder": "Masukkan nama restoran dalam {language}",
       "permanentNotice": "Mata wang tidak boleh diubah selepas persediaan. Bahasa yang anda pilih sekarang menjadi sandaran kekal untuk rekod yang disimpan — anda masih boleh menukar bahasa paparan kemudian.",
       "confirmFinish": "Selesaikan persediaan dengan nama restoran \"{appName}\", mata wang {currency}, dan {mainLanguage} sebagai bahasa utama? Mata wang adalah kekal dan tidak boleh diubah kemudian, dan {mainLanguage} menjadi sandaran kekal untuk rekod yang disimpan (anda masih boleh menukar bahasa paparan selepas itu)."
     },
