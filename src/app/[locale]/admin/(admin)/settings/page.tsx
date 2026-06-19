@@ -54,7 +54,10 @@ export default async function SettingsPage({
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-600">{t("subtitle")}</p>
       </div>
-      <div className="space-y-6 p-4 md:p-6">
+      {/* pb-28 reserves a scroll gutter below all content for the sticky
+          bottom-0 "Save changes" bar inside SettingsForm — without it the
+          pinned translucent bar floats over the last card's fields mid-scroll. */}
+      <div className="space-y-6 p-4 pb-28 md:p-6 md:pb-28">
         <SettingsForm
           initial={{
             appName: settings.appName,

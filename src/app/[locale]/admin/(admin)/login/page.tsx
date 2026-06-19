@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { setRequestLocale, getTranslations } from "next-intl/server";
+import { setRequestLocale, getTranslations, getLocale } from "next-intl/server";
 import { auth } from "@/lib/auth";
 import { hasAnyAdmin } from "@/lib/first-admin";
 import { LoginForm } from "@/components/admin/login-form";
-import { getSettings } from "@/lib/settings";
+import { getSettings, resolveAppName } from "@/lib/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
-  const { appName } = await getSettings();
+  const s = await getSettings();
+  const locale = await getLocale();
+  const appName = resolveAppName(s.appName, s.appNameI18n, locale);
   return { title: t("login", { appName }) };
 }
 
@@ -31,7 +33,12 @@ export default async function LoginPage({
     redirect(`/${locale}/admin/dashboard`);
   }
   const tLogin = await getTranslations("admin.login");
-  const { appName, logoUrl } = await getSettings();
+  const settings = await getSettings();
+  const { logoUrl } = settings;
+  // Show the viewer-locale app name (English name on /en, etc.), matching the
+  // [locale] layout's ConfigProvider + customer page titles — not the bare
+  // main-language `appName`, which would render the canonical name on every locale.
+  const appName = resolveAppName(settings.appName, settings.appNameI18n, locale);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">

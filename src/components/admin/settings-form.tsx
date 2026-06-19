@@ -542,9 +542,15 @@ export function SettingsForm({
       {tab === "notifications" && <NotificationsTab />}
 
       {/* Sticky save bar — only for server-persisted tabs. The Notifications
-          tab applies instantly and has no Save action. */}
+          tab applies instantly and has no Save action.
+          OPAQUE background (not bg-white/95 + backdrop-blur): a translucent
+          sticky bar lets the fields it floats over while scrolling — e.g. the
+          Currency field above it — bleed through, which reads as an overlap
+          glitch. A solid bar cleanly hides whatever scrolls beneath it. The
+          page wrapper's bottom padding reserves room so the last card can
+          still scroll fully clear of the pinned bar. */}
       {tab !== "notifications" && (
-        <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-end gap-4 rounded-2xl border border-gray-200 bg-white/95 px-5 py-4 shadow-lg backdrop-blur">
+        <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-end gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-lg">
           <button
             type="button"
             onClick={handleSave}

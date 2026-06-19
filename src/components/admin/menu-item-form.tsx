@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useConfig } from "@/components/providers/config-provider";
 import { currencySymbolWith } from "@/lib/money-client";
-import { KNOWN_LOCALES } from "@/lib/deployment-config";
+import { KNOWN_LOCALES, localesDefaultFirst } from "@/lib/deployment-config";
 import { ImageUpload } from "@/components/ui/image-upload";
 import {
   blankItemDraft,
@@ -109,6 +109,10 @@ export function MenuItemForm({
     ? duplicateItemDraft(duplicateFrom as DraftSourceItem, cfg.defaultLocale)
     : null;
   const [activeLocale, setActiveLocale] = useState(cfg.defaultLocale);
+  // Order the language tabs with the deployment's default/primary locale first
+  // (the rest keep canonical KNOWN_LOCALES order), so the language the operator
+  // authors in reads as primary instead of sitting mid-row.
+  const localeTabs = localesDefaultFirst(LOCALE_CODES, cfg.defaultLocale);
   const [categoryId, setCategoryId] = useState(
     seed?.categoryId ?? item?.categoryId ?? (categories[0]?.id || 0)
   );
@@ -746,7 +750,7 @@ export function MenuItemForm({
                 )}
               </div>
               <div className="mb-3 flex gap-1 overflow-x-auto border-b border-gray-200">
-                {LOCALE_CODES.map((loc) => {
+                {localeTabs.map((loc) => {
                   const hasValue = !!translations[loc]?.name?.trim();
                   return (
                     <button
@@ -892,7 +896,7 @@ export function MenuItemForm({
                       {/* Group name — locale tabs (compact) */}
                       <div className="mb-2">
                         <div className="mb-1 flex gap-1 overflow-x-auto">
-                          {LOCALE_CODES.map((loc) => (
+                          {localeTabs.map((loc) => (
                             <button
                               key={loc}
                               type="button"

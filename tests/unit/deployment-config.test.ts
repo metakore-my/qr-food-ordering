@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { parseDeploymentConfig, KNOWN_LOCALES } from "@/lib/deployment-config";
+import {
+  parseDeploymentConfig,
+  KNOWN_LOCALES,
+  localesDefaultFirst,
+} from "@/lib/deployment-config";
 
 describe("parseDeploymentConfig", () => {
   it("returns en/THB/all-6 defaults when env is empty", () => {
@@ -77,5 +81,55 @@ describe("timezone derivation", () => {
     expect(
       parseDeploymentConfig({ NEXT_PUBLIC_CURRENCY: "myr" }).timezone
     ).toBe("Asia/Kuala_Lumpur");
+  });
+});
+
+describe("localesDefaultFirst", () => {
+  it("moves the default locale to the front, keeping the rest in canonical order", () => {
+    expect(localesDefaultFirst(KNOWN_LOCALES, "zh-CN")).toEqual([
+      "zh-CN",
+      "en",
+      "th",
+      "vi",
+      "zh-TW",
+      "ms",
+    ]);
+  });
+
+  it("is a no-op (same order) when the default is already first", () => {
+    expect(localesDefaultFirst(KNOWN_LOCALES, "en")).toEqual([...KNOWN_LOCALES]);
+  });
+
+  it("moves a mid-list default (ms) to the front", () => {
+    expect(localesDefaultFirst(KNOWN_LOCALES, "ms")).toEqual([
+      "ms",
+      "en",
+      "th",
+      "vi",
+      "zh-CN",
+      "zh-TW",
+    ]);
+  });
+
+  it("returns the list unchanged when the default is not in it", () => {
+    expect(localesDefaultFirst(KNOWN_LOCALES, "fr")).toEqual([...KNOWN_LOCALES]);
+  });
+
+  it("returns the list unchanged for an empty default", () => {
+    expect(localesDefaultFirst(KNOWN_LOCALES, "")).toEqual([...KNOWN_LOCALES]);
+  });
+
+  it("works on an arbitrary subset (enabled-locale style), default first", () => {
+    expect(localesDefaultFirst(["en", "th", "zh-CN"], "th")).toEqual([
+      "th",
+      "en",
+      "zh-CN",
+    ]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [...KNOWN_LOCALES];
+    localesDefaultFirst(input, "vi");
+    expect(input).toEqual([...KNOWN_LOCALES]);
   });
 });

@@ -39,7 +39,11 @@ export function UserForm({ currentUserId }: { currentUserId: string }) {
     username: "",
     password: "",
     role: "ADMIN",
-    permissions: [],
+    // Pre-tick "orders" so a new ADMIN starts with a usable permission (the
+    // most common staff role is order-taking). An ADMIN needs ≥1 permission to
+    // be created at all; this saves a click and avoids the "no permission"
+    // error on the typical path. The operator can change it before saving.
+    permissions: ["orders"],
   });
   const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
   const [saving, setSaving] = useState(false);
@@ -70,7 +74,8 @@ export function UserForm({ currentUserId }: { currentUserId: string }) {
 
   function openAddModal() {
     setEditingUser(null);
-    setFormData({ username: "", password: "", role: "ADMIN", permissions: [] });
+    // Default a new ADMIN to the "orders" permission ticked (see initial state).
+    setFormData({ username: "", password: "", role: "ADMIN", permissions: ["orders"] });
     setFormErrors({});
     setShowPassword(false);
     setShowModal(true);

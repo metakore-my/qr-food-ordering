@@ -16,6 +16,30 @@ export const KNOWN_LOCALES = [
 export type KnownLocale = (typeof KNOWN_LOCALES)[number];
 
 /**
+ * Order a locale list with the deployment's default/primary locale FIRST, the
+ * rest keeping their original (canonical `KNOWN_LOCALES`) relative order.
+ *
+ * Used to order the per-locale TABS in the admin authoring forms (menu item +
+ * category) so the language the operator authors in — the source-of-truth
+ * default locale — reads as primary instead of sitting wherever it falls in the
+ * fixed superset order. Pure (no dedup beyond moving the default to the front;
+ * assumes a de-duplicated input like `KNOWN_LOCALES`). If `defaultLocale` isn't
+ * in the list (or is empty), the list is returned unchanged.
+ */
+export function localesDefaultFirst<T extends string>(
+  locales: readonly T[],
+  defaultLocale: string
+): T[] {
+  if (!defaultLocale || !locales.includes(defaultLocale as T)) {
+    return [...locales];
+  }
+  return [
+    defaultLocale as T,
+    ...locales.filter((loc) => loc !== defaultLocale),
+  ];
+}
+
+/**
  * Display timezone keyed off currency (each target market has a distinct one).
  * Unmapped-but-valid codes fall back to Asia/Bangkok; add a row for a new market.
  */

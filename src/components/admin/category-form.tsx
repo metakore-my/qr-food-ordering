@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { KNOWN_LOCALES } from "@/lib/deployment-config";
+import { KNOWN_LOCALES, localesDefaultFirst } from "@/lib/deployment-config";
 import { useConfig } from "@/components/providers/config-provider";
 
 const LOCALE_CODES = KNOWN_LOCALES;
@@ -39,6 +39,9 @@ export function CategoryForm({ category, onSave, onClose }: CategoryFormProps) {
   // locale — mirrors the menu-item form so a non-Thai deployment (ms/vi/zh-CN)
   // doesn't land the operator on a Thai tab.
   const [activeLocale, setActiveLocale] = useState(cfg.defaultLocale);
+  // Tabs ordered default/primary-locale first (rest in canonical order) — mirrors
+  // the menu-item form so the operator's authoring language reads as primary.
+  const localeTabs = localesDefaultFirst(LOCALE_CODES, cfg.defaultLocale);
   const [sortOrder, setSortOrder] = useState(category?.sortOrder ?? 0);
   const [translations, setTranslations] = useState<Record<string, string>>(
     () => {
@@ -149,7 +152,7 @@ export function CategoryForm({ category, onSave, onClose }: CategoryFormProps) {
                 {t("categoryNameByLocale")}
               </label>
               <div className="mb-3 flex flex-wrap gap-1 border-b border-gray-200">
-                {LOCALE_CODES.map((loc) => {
+                {localeTabs.map((loc) => {
                   const hasValue = !!translations[loc]?.trim();
                   return (
                     <button

@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-06-19
+
+### Changed
+
+- New staff (Admin) accounts now start with the "Orders" permission pre-selected,
+  so the most common front-of-house role is one click to create.
+- In the menu and category editors, the restaurant's main language tab now
+  appears first in the row of language tabs, instead of in a fixed order — so the
+  language you mostly type in is where you'd expect it.
+
+### Fixed
+
+- The admin login screen now shows the restaurant name in the language you're
+  viewing it in (e.g. the English name on the English login page), instead of
+  always showing the main-language name regardless of the chosen language.
+- On the Settings page, the pinned "Save changes" bar no longer shows the fields
+  beneath it bleeding through as you scroll — the bar is now solid, and there's
+  room to scroll the last setting fully clear of it.
+
 ## [1.0.1] - 2026-06-17
 
 ### Added
@@ -154,5 +173,6 @@ prior version to change, remove, or fix against.
 - Responsive layout verified across 320px–1440px (touch targets, iOS input zoom,
   safe-area insets, sticky elements).
 
+[1.0.2]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.2
 [1.0.1]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.1
 [1.0.0]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.0
