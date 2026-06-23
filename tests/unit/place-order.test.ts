@@ -136,4 +136,32 @@ describe("placeOrder", () => {
     const data = captured.value as { totalAmount: number };
     expect(data.totalAmount).toBe(150000);
   });
+
+  it("writes orderType and customerName onto the created order", async () => {
+    const captured = { value: null as unknown };
+    const tx = fakeTx(captured);
+    await placeOrder(tx, {
+      session: { id: "sess_1" },
+      lines: [{ menuItem: makeItem(), quantity: 1, selectedOptions: "[]" }],
+      settings: baseSettings(),
+      orderType: "TAKEAWAY",
+      customerName: "Ali",
+    });
+    const data = captured.value as { orderType: string; customerName: string | null };
+    expect(data.orderType).toBe("TAKEAWAY");
+    expect(data.customerName).toBe("Ali");
+  });
+
+  it("defaults orderType to DINE_IN and customerName to null when omitted", async () => {
+    const captured = { value: null as unknown };
+    const tx = fakeTx(captured);
+    await placeOrder(tx, {
+      session: { id: "sess_1" },
+      lines: [{ menuItem: makeItem(), quantity: 1, selectedOptions: "[]" }],
+      settings: baseSettings(),
+    });
+    const data = captured.value as { orderType: string; customerName: string | null };
+    expect(data.orderType).toBe("DINE_IN");
+    expect(data.customerName ?? null).toBeNull();
+  });
 });

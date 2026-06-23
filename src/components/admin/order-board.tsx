@@ -21,7 +21,7 @@ interface OrderBoardProps {
 function groupByTable(orders: OrderData[]): TableGroup[] {
   const map = new Map<
     string,
-    { sessionId: string; tableNumber: number; orders: OrderData[] }
+    { sessionId: string; tableNumber: number | null; orderType: "DINE_IN" | "TAKEAWAY"; customerName: string | null; orders: OrderData[] }
   >();
 
   for (const order of orders) {
@@ -29,7 +29,9 @@ function groupByTable(orders: OrderData[]): TableGroup[] {
     if (!map.has(key)) {
       map.set(key, {
         sessionId: order.sessionId,
-        tableNumber: order.session.table.number,
+        tableNumber: order.session.table?.number ?? null,
+        orderType: order.orderType,
+        customerName: order.customerName,
         orders: [],
       });
     }
@@ -108,7 +110,6 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
         // throw must not abort the loop or the surrounding fetch handler.
         if ("Notification" in window && Notification.permission === "granted") {
           for (const order of newOrders) {
-            const tableNumber = order.session.table.number;
             const itemSummary = order.items
               .map((i) => {
                 const names = i.menuItem?.names ?? [];
@@ -121,9 +122,18 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
               .join(", ");
             const total = formatMoneyWith(order.totalAmount, { currency: cfg.currency, decimals: cfg.decimals, locale: cfg.defaultLocale });
 
+            // Dine-in keeps the existing "New order from Table N" title; a
+            // table-less takeaway has no table number, so its title is the
+            // takeaway label (name, else order id) — the deref can't crash now.
+            const notificationTitle = order.session.table
+              ? t("newOrderNotification", { table: order.session.table.number })
+              : order.customerName
+                ? t("takeawayNamed", { name: order.customerName })
+                : t("takeawayUnnamed", { id: order.id });
+
             try {
               const notification = new Notification(
-                t("newOrderNotification", { table: tableNumber }),
+                notificationTitle,
                 {
                   body: t("newOrderNotificationBody", { items: itemSummary, total }),
                   tag: `order-${order.id}`,
@@ -208,6 +218,28 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
   }, []);
 
+  // "Mark collected" — settle a table-less counter-takeaway's single order.
+  // POSTs the collect route (COMPLETED via updateMany), then refetches the board
+  // so the now-COMPLETED order leaves the active columns on the next render.
+  const handleCollect = useCallback(
+    (orderId: number) => {
+      fetch(`/api/admin/orders/${orderId}/collect`, { method: "POST" })
+        .then((r) => {
+          if (r.ok) {
+            // Optimistically drop the collected order; the poll reconciles.
+            setOrders((prev) => prev.filter((o) => o.id !== orderId));
+          }
+        })
+        .catch(() => {
+          /* leave it on the board; next poll reflects true state */
+        })
+        .finally(() => {
+          fetchOrders();
+        });
+    },
+    [fetchOrders]
+  );
+
   // Group orders by status, then by table (memoized)
   const ordersByStatus = useMemo(() => {
     const result: Record<BoardStatus, OrderData[]> = {
@@ -232,7 +264,9 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
     if (sessionOrders.length === 0) return null;
     return {
       sessionId: selectedSessionId,
-      tableNumber: sessionOrders[0].session.table.number,
+      tableNumber: sessionOrders[0].session.table?.number ?? null,
+      orderType: sessionOrders[0].orderType,
+      customerName: sessionOrders[0].customerName,
       orders: sessionOrders,
       totalAmount: sessionOrders.reduce((sum, o) => sum + o.totalAmount, 0),
     };
@@ -311,6 +345,7 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
                       key={group.sessionId}
                       group={group}
                       onClick={(g) => setSelectedSessionId(g.sessionId)}
+                      onCollect={handleCollect}
                     />
                   ))
                 )}

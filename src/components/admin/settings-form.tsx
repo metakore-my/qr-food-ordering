@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { KNOWN_LOCALES } from "@/lib/deployment-config";
 import { resolveThemeRamp, themeCssVars } from "@/lib/themes";
 import { useConfig } from "@/components/providers/config-provider";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { useOrderAlertSound } from "@/hooks/use-order-alert-sound";
-import { ORDER_ALERT_SOUNDS } from "@/lib/order-alert-prefs";
 import { swapDefaultLocaleName } from "@/lib/app-name";
 
 const CURRENCIES = ["MYR", "SGD", "THB", "VND"] as const;
@@ -36,15 +35,20 @@ export interface InitialSettings {
   brandTheme: string;
   brandColor: string | null;
   logoUrl: string | null;
+  takeawayEnabled?: boolean;
 }
 
-type Tab = "general" | "branding" | "notifications";
+type Tab = "general" | "branding";
 
 /**
  * SUPERADMIN-only runtime settings editor. Two tabs:
  * - General: app name, currency, default/canonical locale, enabled-locale subset.
  * - Branding: theme preset swatches + custom color picker, optional logo upload
  *   (only when R2 is configured).
+ *
+ * NOTE: per-device notification (sound) settings deliberately live ONLY in the
+ * sidebar (NotificationSettingsModal), reachable by every admin — not here, which
+ * is SUPERADMIN-only. Do not re-add a Notifications tab.
  *
  * Saving PATCHes /api/admin/settings; on 400 the server's validation message is
  * surfaced inline. Some changes (currency/locale/theme) apply on next page load
@@ -59,8 +63,16 @@ export function SettingsForm({
 }) {
   const t = useTranslations("admin.settings");
   const { capabilities } = useConfig();
+  const router = useRouter();
 
   const [tab, setTab] = useState<Tab>("general");
+
+  // After a successful save, the live-preview effect's unmount cleanup must NOT
+  // restore the pre-edit theme vars (that would re-mask the freshly-saved theme
+  // when the operator navigates away — inline html.style overrides the layout's
+  // injected :root <style>). This ref tells the cleanup to leave the current
+  // (saved) inline values in place instead. See handleSave + the preview effect.
+  const skipPreviewRestoreRef = useRef(false);
 
   // General
   const [appName, setAppName] = useState(initial.appName);
@@ -73,6 +85,7 @@ export function SettingsForm({
   const [enabledLocales, setEnabledLocales] = useState<string[]>(
     initial.enabledLocales.length > 0 ? initial.enabledLocales : [...KNOWN_LOCALES]
   );
+  const [takeawayEnabled, setTakeawayEnabled] = useState<boolean>(initial.takeawayEnabled ?? false);
 
   // Branding
   const isPreset = (PRESET_THEMES as readonly string[]).includes(initial.brandTheme);
@@ -130,6 +143,9 @@ export function SettingsForm({
   // WITHOUT saving reverts the theme; on save, the persisted value becomes the
   // real one (config refetch). XSS-safe: themeCssVars drops any non-hex shade.
   useEffect(() => {
+    // A new theme selection is a fresh UNSAVED edit — re-arm revert-on-navigate
+    // (a prior save may have set this to skip-restore).
+    skipPreviewRestoreRef.current = false;
     const root = document.documentElement;
     // Snapshot the inline overrides we're about to set, so cleanup restores exactly.
     const shades = [
@@ -144,8 +160,12 @@ export function SettingsForm({
       if (name && value) root.style.setProperty(name, value);
     }
     return () => {
-      // Restore the prior inline values (empty string removes our override so the
-      // server-injected <style> takes back over).
+      // After a successful save we keep the current (saved) inline values so the
+      // operator doesn't see the theme snap back to the old colors while the
+      // refreshed server <style> catches up. Otherwise restore the prior inline
+      // values (empty string removes our override so the server-injected <style>
+      // takes back over) — the unsaved-preview revert-on-navigate behaviour.
+      if (skipPreviewRestoreRef.current) return;
       for (const [s, val] of prev) {
         if (val) root.style.setProperty(`--color-primary-${s}`, val);
         else root.style.removeProperty(`--color-primary-${s}`);
@@ -179,6 +199,7 @@ export function SettingsForm({
       default_locale: defaultLocale,
       enabled_locales: enabledLocales.join(","),
       brand_theme: brandTheme,
+      takeaway_enabled: takeawayEnabled ? "true" : "false",
     };
     if (!setupComplete) {
       patch.currency = currency;
@@ -208,6 +229,15 @@ export function SettingsForm({
       }
 
       setSuccess(true);
+      // Theme/app-name/locale/etc. are read in SERVER components (the [locale]
+      // layout injects the theme <style> and ConfigProvider from getSettings()).
+      // The PATCH route already invalidated the settings cache server-side, so
+      // refresh re-renders the layout with the new theme instead of the operator
+      // seeing the OLD colors until a hard reload. Keep the live-preview inline
+      // overrides in place across the upcoming unmount (skip the revert) so the
+      // saved theme doesn't flash back to the old one while refresh lands.
+      skipPreviewRestoreRef.current = true;
+      router.refresh();
     } catch {
       setError(t("saveError"));
     } finally {
@@ -224,7 +254,6 @@ export function SettingsForm({
   const tabs: { id: Tab; label: string }[] = [
     { id: "general", label: t("tabGeneral") },
     { id: "branding", label: t("tabBranding") },
-    { id: "notifications", label: t("tabNotifications") },
   ];
 
   return (
@@ -404,6 +433,24 @@ export function SettingsForm({
               </fieldset>
             </div>
           </section>
+
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+            <SectionHeading title={t("takeawayEnabled")} />
+            <div>
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={takeawayEnabled}
+                  onChange={(e) => setTakeawayEnabled(e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm font-semibold text-gray-900">
+                  {t("takeawayEnabled")}
+                </span>
+              </label>
+              <p className={`${hintClass} mt-1.5`}>{t("takeawayEnabledHint")}</p>
+            </div>
+          </section>
         </div>
       )}
 
@@ -535,233 +582,23 @@ export function SettingsForm({
         </div>
       )}
 
-      {/* Notifications tab — PER-DEVICE order-alert sound. Stored in this
-          browser's localStorage (not the DB), applies instantly, and is
-          independent on every device. No Save button: it is not part of the
-          server PATCH. */}
-      {tab === "notifications" && <NotificationsTab />}
-
-      {/* Sticky save bar — only for server-persisted tabs. The Notifications
-          tab applies instantly and has no Save action.
+      {/* Sticky save bar.
           OPAQUE background (not bg-white/95 + backdrop-blur): a translucent
           sticky bar lets the fields it floats over while scrolling — e.g. the
           Currency field above it — bleed through, which reads as an overlap
           glitch. A solid bar cleanly hides whatever scrolls beneath it. The
           page wrapper's bottom padding reserves room so the last card can
           still scroll fully clear of the pinned bar. */}
-      {tab !== "notifications" && (
-        <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-end gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-lg">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {saving ? t("saving") : t("save")}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Per-device order-alert sound controls. State lives in localStorage via
- * `useOrderAlertSound`, so this configures only the browser it runs in (a
- * kitchen tablet chimes; a manager's laptop need not). Toggling "enable" also
- * performs the autoplay unlock gesture (this click), and fires a test chime so
- * staff immediately hear what an order sounds like and at what volume.
- */
-function NotificationsTab() {
-  const t = useTranslations("admin.settings");
-  const {
-    enabled,
-    overrideMute,
-    volume,
-    sound,
-    unlocked,
-    unlock,
-    play,
-    setEnabled,
-    setOverrideMute,
-    setVolume,
-    setSound,
-  } = useOrderAlertSound();
-
-  async function handleToggleEnabled() {
-    const next = !enabled;
-    setEnabled(next);
-    if (next) {
-      // This click is the user gesture — arm audio, then play a test chime.
-      const ok = await unlock();
-      if (ok) play();
-    }
-  }
-
-  // Switch the selected sound and immediately preview it (the click is the
-  // autoplay gesture; arm first if this is the first interaction on the page).
-  async function handleSelectSound(id: string) {
-    setSound(id);
-    if (!unlocked) await unlock();
-    // setSound writes to the store synchronously; play() reads it back and
-    // reloads the new asset before playing, so the preview matches the choice.
-    play();
-  }
-
-  return (
-    <div className="space-y-5">
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        <SectionHeading title={t("soundSection")} />
-        <p className="mb-5 text-sm text-gray-600">{t("soundSectionHint")}</p>
-
-        {/* Master enable */}
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-900">{t("soundEnable")}</p>
-            <p className="mt-0.5 text-sm text-gray-600">{t("soundEnableHint")}</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            onClick={handleToggleEnabled}
-            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors before:absolute before:inset-x-0 before:-inset-y-[8px] before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
-              enabled ? "bg-primary-600" : "bg-gray-300"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                enabled ? "translate-x-6" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </div>
-
-        {enabled && (
-          <>
-            {/* Sound picker — choose which chime this device plays. Selecting
-                one previews it. Stored per-device in localStorage. */}
-            <fieldset className="mt-4">
-              <legend className="mb-2 text-sm font-semibold text-gray-900">
-                {t("soundChoose")}
-              </legend>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {ORDER_ALERT_SOUNDS.map((s) => {
-                  const selected = sound === s.id;
-                  return (
-                    <label
-                      key={s.id}
-                      className={`flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-xl border-2 px-4 py-2.5 text-sm font-semibold transition-all ${
-                        selected
-                          ? "border-primary-500 bg-primary-50 text-primary-800 shadow-sm"
-                          : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="order-alert-sound"
-                        value={s.id}
-                        checked={selected}
-                        onChange={() => handleSelectSound(s.id)}
-                        className="sr-only"
-                      />
-                      <span aria-hidden="true">🔔</span>
-                      <span>{t(s.labelKey)}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <p className="mt-1.5 text-sm text-gray-600">{t("soundChooseHint")}</p>
-            </fieldset>
-
-            {/* Override mute */}
-            <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">
-                  {t("soundOverrideMute")}
-                </p>
-                <p className="mt-0.5 text-sm text-gray-600">
-                  {t("soundOverrideMuteHint")}
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={overrideMute}
-                onClick={() => setOverrideMute(!overrideMute)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors before:absolute before:inset-x-0 before:-inset-y-[8px] before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
-                  overrideMute ? "bg-primary-600" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                    overrideMute ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Volume slider — per-device, defaults to MAX for the noisy F&B
-                floor. Plays a test chime on release so staff hear the level.
-                The range input itself is the user gesture, so we arm on change. */}
-            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <label htmlFor="sound-volume" className="text-sm font-semibold text-gray-900">
-                  {t("soundVolume")}
-                </label>
-                <span className="text-sm font-medium text-gray-600">
-                  {Math.round(volume * 100)}%
-                </span>
-              </div>
-              <input
-                id="sound-volume"
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                value={Math.round(volume * 100)}
-                onChange={(e) => setVolume(Number(e.target.value) / 100)}
-                onPointerUp={async () => {
-                  // Preview the chosen level on release (arm first if needed).
-                  if (!unlocked) await unlock();
-                  play();
-                }}
-                onKeyUp={async (e) => {
-                  if (e.key.startsWith("Arrow")) {
-                    if (!unlocked) await unlock();
-                    play();
-                  }
-                }}
-                aria-describedby="sound-volume-hint"
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-300 accent-primary-600"
-              />
-              <p id="sound-volume-hint" className="mt-1.5 text-sm text-gray-600">
-                {t("soundVolumeHint")}
-              </p>
-            </div>
-
-            {/* Test row — the button self-arms audio on click (autoplay
-                gesture), so no separate "tap to allow" instruction is needed. */}
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!unlocked) await unlock();
-                  play();
-                }}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 shadow-sm transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              >
-                <span aria-hidden="true">🔔</span>
-                {t("soundTest")}
-              </button>
-            </div>
-
-            <p className="mt-5 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
-              {t("soundDeviceNote")}
-            </p>
-          </>
-        )}
-      </section>
+      <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-end gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-lg">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? t("saving") : t("save")}
+        </button>
+      </div>
     </div>
   );
 }

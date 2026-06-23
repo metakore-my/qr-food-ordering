@@ -119,7 +119,7 @@ export async function POST(
 
     // Serialize the response
     const serialized = {
-      tableNumber: result.session.table.number,
+      tableNumber: result.session.table?.number ?? null,
       sessionId,
       grandTotal,
       orders: fullOrders.map((order) => ({

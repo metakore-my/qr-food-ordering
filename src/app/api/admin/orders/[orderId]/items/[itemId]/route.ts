@@ -167,9 +167,11 @@ function serializeOrder(order: {
   }>;
   session: {
     id: string;
-    tableId: number;
+    // Takeaway sessions have no table, so both are nullable. The serialized
+    // shape passes them through; the admin order board/detail tolerates null.
+    tableId: number | null;
     status: string;
-    table: { id: number; number: number };
+    table: { id: number; number: number } | null;
   };
 }) {
   return {

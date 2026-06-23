@@ -6,6 +6,7 @@ import { hasAnyAdmin } from "@/lib/first-admin";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminBackground } from "@/components/layout/admin-background";
 import { AdminLayoutClient, AdminContent } from "@/components/layout/admin-layout-client";
+import { AdminFontScale } from "@/components/layout/admin-font-scale";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 
 export default async function AdminLayout({
@@ -49,7 +50,7 @@ export default async function AdminLayout({
 
   return (
     <AdminLayoutClient>
-      <div className="relative min-h-screen bg-gray-50">
+      <AdminFontScale>
         <AdminBackground />
         <AdminSidebar role={role} permissions={permissions} username={username} />
         <AdminContent id="main-content">
@@ -60,7 +61,7 @@ export default async function AdminLayout({
           )}
           {children}
         </AdminContent>
-      </div>
+      </AdminFontScale>
     </AdminLayoutClient>
   );
 }

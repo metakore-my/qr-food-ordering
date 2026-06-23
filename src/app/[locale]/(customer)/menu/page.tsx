@@ -58,6 +58,7 @@ export default async function MenuPage({
   const t = await getTranslations("customer");
   const tNav = await getTranslations("nav");
   const tMenu = await getTranslations("menu");
+  const tOrder = await getTranslations("order");
   const { canonicalLocale } = await getSettings();
 
   // 1. Read session_id from cookie
@@ -236,7 +237,7 @@ export default async function MenuPage({
           </p>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="rounded-lg bg-primary-100 px-2.5 py-1.5 text-xs font-medium text-primary-700 sm:px-3 sm:text-sm">
-              {tMenu("tableNumber", { number: session.table.number })}
+              {session.table ? tMenu("tableNumber", { number: session.table.number }) : tOrder("takeawayLabel")}
             </span>
             <LocaleSwitcher />
           </div>

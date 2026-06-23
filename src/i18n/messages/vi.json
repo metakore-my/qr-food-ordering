@@ -118,7 +118,8 @@
     "editFailed": "Không thể cập nhật đơn hàng",
     "confirmAllPartial": "{failed} trong {total} đơn hàng không thể xác nhận. Vui lòng thử lại.",
     "confirmRemoveItem": "Bạn có chắc muốn xóa \"{name}\" khỏi đơn này không?",
-    "confirmDecline": "Từ chối đơn này? Thao tác này không thể hoàn tác."
+    "confirmDecline": "Từ chối đơn này? Thao tác này không thể hoàn tác.",
+    "takeawayLabel": "Mang về"
   },
   "checkout": {
     "title": "Thanh toán",
@@ -231,7 +232,6 @@
       "subtitle": "Quản lý tên nhà hàng, đơn vị tiền tệ, ngôn ngữ và thương hiệu.",
       "tabGeneral": "Chung",
       "tabBranding": "Thương hiệu",
-      "tabNotifications": "Thông báo",
       "appName": "Tên nhà hàng",
       "currency": "Đơn vị tiền tệ",
       "defaultLocale": "Ngôn ngữ mặc định",
@@ -295,7 +295,9 @@
         "restoreEmptyName": "Tệp sao lưu có món không có tên. Tệp có vẻ bị hỏng.",
         "restoreTooLarge": "Tệp sao lưu này quá lớn để khôi phục (vượt quá 10 MB). Tệp có vẻ bị hỏng.",
         "restoreError": "Khôi phục thất bại. Thực đơn của bạn không bị thay đổi."
-      }
+      },
+      "takeawayEnabled": "Bật tính năng đặt món mang về",
+      "takeawayEnabledHint": "Cho phép nhân viên đặt đơn mang về, không cần số bàn. Mặc định tắt."
     },
     "dashboard": {
       "title": "Bảng điều khiển đơn hàng",
@@ -308,7 +310,12 @@
       "tapToEnableSound": "Nhấn để bật âm thanh đơn hàng",
       "soundArmed": "Âm thanh bật",
       "botProtectionDisabled": "Tính năng bảo vệ bot (CAPTCHA) chưa được cấu hình cho triển khai này. Đăng nhập quản trị chỉ được bảo vệ bằng giới hạn tốc độ và kiểm tra mật khẩu.",
-      "noAccess": "Bạn chưa được cấp quyền truy cập vào mục nào. Vui lòng liên hệ quản trị viên cấp cao để được cấp quyền."
+      "noAccess": "Bạn chưa được cấp quyền truy cập vào mục nào. Vui lòng liên hệ quản trị viên cấp cao để được cấp quyền.",
+      "takeawayBadge": "Mang về",
+      "takeawayNamed": "Mang về · {name}",
+      "takeawayUnnamed": "Mang về #{id}",
+      "markCollected": "Xác nhận đã lấy",
+      "confirmCollect": "Đánh dấu đơn mang về này là đã lấy và thanh toán?"
     },
     "tables": {
       "title": "Quản lý bàn",
@@ -657,7 +664,17 @@
         "subtotal": "Tạm tính ({currencyCode})",
         "truncatedWarning": "BỊ CẮT NGẮN",
         "truncatedDetail": "Đang hiển thị {shown} trong {total} đơn — hãy thu hẹp khoảng ngày để xem đầy đủ."
-      }
+      },
+      "orderType": "Loại đơn hàng",
+      "orderTypeDineIn": "Tại bàn",
+      "orderTypeTakeaway": "Mang về",
+      "channelTitle": "Tại bàn so với Mang về",
+      "channelDineIn": "Tại bàn",
+      "channelTakeaway": "Mang về",
+      "channelOrders": "Đơn hàng",
+      "channelRevenue": "Doanh thu",
+      "channelShare": "Tỷ lệ",
+      "channelTotal": "Tổng cộng"
     },
     "orderEntry": {
       "title": "Đặt món cho khách",
@@ -689,7 +706,15 @@
         "SESSION_INACTIVE": "Phiên của bàn này vừa đóng. Bắt đầu lại đơn hàng.",
         "ORDER_IN_PROGRESS": "Đơn hàng này đang được xử lý. Vui lòng đợi.",
         "SERVER_ERROR": "Có lỗi xảy ra khi đặt món. Vui lòng thử lại."
-      }
+      },
+      "placedTakeawayBody": "Đơn mang về đã được gửi đến bếp.",
+      "orderTypeLabel": "Loại đơn hàng",
+      "dineIn": "Tại bàn",
+      "takeaway": "Mang về",
+      "customerNameLabel": "Tên khách hàng",
+      "customerNamePlaceholder": "Tên khách hàng (tùy chọn)",
+      "featured": "Nổi bật",
+      "categoryTabsLabel": "Duyệt theo danh mục"
     },
     "checkoutScanner": {
       "title": "Máy quét thanh toán",
@@ -725,7 +750,12 @@
       "expandSidebar": "Mở rộng thanh bên",
       "collapseSidebar": "Thu gọn thanh bên",
       "changePassword": "Đổi mật khẩu",
-      "loggedInAs": "Đăng nhập với tên {username}"
+      "loggedInAs": "Đăng nhập với tên {username}",
+      "fontSize": "Cỡ chữ",
+      "fontSizeSmall": "Nhỏ",
+      "fontSizeMedium": "Vừa",
+      "fontSizeLarge": "Lớn",
+      "notificationSettings": "Cài đặt thông báo"
     },
     "changePassword": {
       "title": "Đổi mật khẩu",

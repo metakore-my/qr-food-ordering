@@ -5,6 +5,7 @@ import {
   clockHourProfile,
   dayOfWeekProfile,
   topItemPairs,
+  channelBreakdown,
   withUtf8Bom,
   toCsv,
 } from "@/lib/report-utils";
@@ -505,5 +506,94 @@ describe("topItemPairs — attach-rate + lift (decision-grade pairs)", () => {
     expect(pt?.attachRate).toBe(100); // 8 of 8 Thai Tea orders
     expect(pt?.anchorCount).toBe(8);
     expect(pt?.bothCount).toBe(8);
+  });
+});
+
+describe("channelBreakdown — dine-in vs takeaway split (orders, revenue, shares)", () => {
+  // Build an order of a given channel with item lines (unitPrice × qty each).
+  function order(
+    orderType: "DINE_IN" | "TAKEAWAY",
+    ...lines: [number, number][] // [unitPrice, quantity]
+  ) {
+    return {
+      orderType,
+      items: lines.map(([unitPrice, quantity]) => ({ unitPrice, quantity })),
+    };
+  }
+
+  it("returns all-zero stats and 0 shares (never NaN) for empty input", () => {
+    const b = channelBreakdown([]);
+    expect(b.dineIn).toEqual({ orders: 0, revenue: 0, orderShare: 0, revenueShare: 0 });
+    expect(b.takeaway).toEqual({ orders: 0, revenue: 0, orderShare: 0, revenueShare: 0 });
+    expect(b.totalOrders).toBe(0);
+    expect(b.totalRevenue).toBe(0);
+    // Guard against divide-by-zero leaking through.
+    expect(Number.isNaN(b.dineIn.orderShare)).toBe(false);
+    expect(Number.isNaN(b.takeaway.revenueShare)).toBe(false);
+  });
+
+  it("a single dine-in order owns 100% of both shares; takeaway stays 0", () => {
+    // One dine-in order of 2 lines: 50×2 + 30×1 = 130.
+    const b = channelBreakdown([order("DINE_IN", [50, 2], [30, 1])]);
+    expect(b.dineIn.orders).toBe(1);
+    expect(b.dineIn.revenue).toBe(130);
+    expect(b.dineIn.orderShare).toBe(100);
+    expect(b.dineIn.revenueShare).toBe(100);
+    expect(b.takeaway).toEqual({ orders: 0, revenue: 0, orderShare: 0, revenueShare: 0 });
+    expect(b.totalOrders).toBe(1);
+    expect(b.totalRevenue).toBe(130);
+  });
+
+  it("splits a 3 dine-in + 1 takeaway mix with exact shares", () => {
+    // 3 dine-in @ 100 each (qty 1) = 300 revenue; 1 takeaway @ 100 = 100 revenue.
+    // orderShare: 3/4 = 75 / 1/4 = 25. revenueShare: 300/400 = 75 / 100/400 = 25.
+    const b = channelBreakdown([
+      order("DINE_IN", [100, 1]),
+      order("DINE_IN", [100, 1]),
+      order("DINE_IN", [100, 1]),
+      order("TAKEAWAY", [100, 1]),
+    ]);
+    expect(b.dineIn.orders).toBe(3);
+    expect(b.dineIn.revenue).toBe(300);
+    expect(b.dineIn.orderShare).toBe(75);
+    expect(b.dineIn.revenueShare).toBe(75);
+    expect(b.takeaway.orders).toBe(1);
+    expect(b.takeaway.revenue).toBe(100);
+    expect(b.takeaway.orderShare).toBe(25);
+    expect(b.takeaway.revenueShare).toBe(25);
+    expect(b.totalOrders).toBe(4);
+    expect(b.totalRevenue).toBe(400);
+  });
+
+  it("uses unitPrice × quantity (option-inclusive snapshot), e.g. 30 × 2 = 60", () => {
+    // unitPrice already bakes in any option adjustment (it's the stored snapshot),
+    // so a 30×2 line contributes exactly 60 — lineRevenue does not re-add options.
+    const b = channelBreakdown([order("TAKEAWAY", [30, 2])]);
+    expect(b.takeaway.revenue).toBe(60);
+    expect(b.totalRevenue).toBe(60);
+  });
+
+  it("rounds shares to 1 dp and revenue to 2 dp", () => {
+    // 1 dine-in of 3 orders → 1/3 = 33.333% → 33.3 (1 dp). Revenue 10.005 → 10.01? we
+    // assert 1-dp shares and 2-dp revenue cleanly: 3 orders, one per channel split.
+    const b = channelBreakdown([
+      order("DINE_IN", [10, 1]),
+      order("TAKEAWAY", [10, 1]),
+      order("TAKEAWAY", [10, 1]),
+    ]);
+    // 1 of 3 = 33.3%, 2 of 3 = 66.7%.
+    expect(b.dineIn.orderShare).toBe(33.3);
+    expect(b.takeaway.orderShare).toBe(66.7);
+    // Revenue 2-dp: a fractional line 3.335 × 1 rounds to 3.34 (2 dp) when isolated.
+    const r = channelBreakdown([order("DINE_IN", [3.335, 1])]);
+    expect(r.dineIn.revenue).toBe(3.34);
+    expect(r.totalRevenue).toBe(3.34);
+  });
+
+  it("accepts a Prisma Decimal-like unitPrice (has toString)", () => {
+    const b = channelBreakdown([
+      { orderType: "DINE_IN", items: [{ unitPrice: { toString: () => "12.5" }, quantity: 4 }] },
+    ]);
+    expect(b.dineIn.revenue).toBe(50); // 12.5 × 4
   });
 });

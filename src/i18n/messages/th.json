@@ -118,7 +118,8 @@
     "editFailed": "อัปเดตออเดอร์ไม่สำเร็จ",
     "confirmAllPartial": "ยืนยัน {failed} จาก {total} ออเดอร์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
     "confirmRemoveItem": "คุณแน่ใจหรือไม่ว่าต้องการลบ \"{name}\" ออกจากออเดอร์นี้?",
-    "confirmDecline": "ปฏิเสธออเดอร์นี้? การดำเนินการนี้ไม่สามารถยกเลิกได้"
+    "confirmDecline": "ปฏิเสธออเดอร์นี้? การดำเนินการนี้ไม่สามารถยกเลิกได้",
+    "takeawayLabel": "สั่งกลับบ้าน"
   },
   "checkout": {
     "title": "ชำระเงิน",
@@ -231,7 +232,6 @@
       "subtitle": "จัดการชื่อร้านอาหาร สกุลเงิน ภาษา และแบรนด์ดิ้ง",
       "tabGeneral": "ทั่วไป",
       "tabBranding": "แบรนด์ดิ้ง",
-      "tabNotifications": "การแจ้งเตือน",
       "appName": "ชื่อร้านอาหาร",
       "appNameFor": "ชื่อร้านอาหารเป็นภาษา {language} (ไม่บังคับ)",
       "appNameForPlaceholder": "เว้นว่างไว้เพื่อใช้ชื่อจากภาษาหลัก",
@@ -295,7 +295,9 @@
         "restoreEmptyName": "ไฟล์สำรองมีรายการที่ไม่มีชื่อเลย ไฟล์อาจเสียหาย",
         "restoreTooLarge": "ไฟล์สำรองนี้มีขนาดใหญ่เกินไป (เกิน 10 MB) จึงไม่สามารถกู้คืนได้ ไฟล์อาจเสียหาย",
         "restoreError": "กู้คืนไม่สำเร็จ เมนูของคุณไม่มีการเปลี่ยนแปลง"
-      }
+      },
+      "takeawayEnabled": "เปิดรับออเดอร์กลับบ้าน",
+      "takeawayEnabledHint": "ให้พนักงานสร้างออเดอร์สำหรับรับที่ร้านโดยไม่ต้องระบุโต๊ะ ปิดอยู่โดยค่าเริ่มต้น"
     },
     "dashboard": {
       "title": "แดชบอร์ดออเดอร์",
@@ -308,7 +310,12 @@
       "tapToEnableSound": "แตะเพื่อเปิดเสียงแจ้งเตือนออเดอร์",
       "soundArmed": "เสียงเปิดอยู่",
       "botProtectionDisabled": "การป้องกันบอต (CAPTCHA) ยังไม่ได้ตั้งค่าสำหรับการติดตั้งนี้ การเข้าสู่ระบบของผู้ดูแลใช้เฉพาะการจำกัดอัตราและการตรวจสอบรหัสผ่านเท่านั้น",
-      "noAccess": "คุณยังไม่ได้รับสิทธิ์เข้าถึงส่วนใดๆ กรุณาติดต่อผู้ดูแลระบบสูงสุดเพื่อขอรับสิทธิ์"
+      "noAccess": "คุณยังไม่ได้รับสิทธิ์เข้าถึงส่วนใดๆ กรุณาติดต่อผู้ดูแลระบบสูงสุดเพื่อขอรับสิทธิ์",
+      "takeawayBadge": "กลับบ้าน",
+      "takeawayNamed": "กลับบ้าน · {name}",
+      "takeawayUnnamed": "กลับบ้าน #{id}",
+      "markCollected": "รับของแล้ว",
+      "confirmCollect": "ทำเครื่องหมายว่ารับออเดอร์กลับบ้านนี้แล้วและชำระเงินแล้ว?"
     },
     "tables": {
       "title": "จัดการโต๊ะ",
@@ -657,7 +664,17 @@
         "subtotal": "ยอดย่อย ({currencyCode})",
         "truncatedWarning": "ถูกตัดทอน",
         "truncatedDetail": "แสดง {shown} จาก {total} ออเดอร์ — ลดช่วงวันที่เพื่อดูข้อมูลครบถ้วน"
-      }
+      },
+      "orderType": "ประเภทออเดอร์",
+      "orderTypeDineIn": "ทานที่ร้าน",
+      "orderTypeTakeaway": "สั่งกลับบ้าน",
+      "channelTitle": "ทานที่ร้าน เทียบกับ สั่งกลับบ้าน",
+      "channelDineIn": "ทานที่ร้าน",
+      "channelTakeaway": "สั่งกลับบ้าน",
+      "channelOrders": "จำนวนออเดอร์",
+      "channelRevenue": "รายได้",
+      "channelShare": "สัดส่วน",
+      "channelTotal": "รวม"
     },
     "orderEntry": {
       "title": "สั่งออเดอร์",
@@ -689,7 +706,15 @@
         "SESSION_INACTIVE": "เซสชันของโต๊ะนี้ปิดแล้ว กรุณาเริ่มออเดอร์ใหม่",
         "ORDER_IN_PROGRESS": "ออเดอร์นี้กำลังดำเนินการอยู่ กรุณารอสักครู่",
         "SERVER_ERROR": "เกิดข้อผิดพลาดในการสั่งออเดอร์ กรุณาลองใหม่"
-      }
+      },
+      "placedTakeawayBody": "ส่งออเดอร์กลับบ้านไปยังครัวแล้ว",
+      "orderTypeLabel": "ประเภทออเดอร์",
+      "dineIn": "ทานที่ร้าน",
+      "takeaway": "สั่งกลับบ้าน",
+      "customerNameLabel": "ชื่อลูกค้า",
+      "customerNamePlaceholder": "ชื่อลูกค้า (ไม่บังคับ)",
+      "featured": "แนะนำ",
+      "categoryTabsLabel": "เรียกดูตามหมวดหมู่"
     },
     "checkoutScanner": {
       "title": "สแกนเช็คเอาท์",
@@ -725,7 +750,12 @@
       "expandSidebar": "ขยายแถบด้านข้าง",
       "collapseSidebar": "ย่อแถบด้านข้าง",
       "changePassword": "เปลี่ยนรหัสผ่าน",
-      "loggedInAs": "เข้าสู่ระบบในชื่อ {username}"
+      "loggedInAs": "เข้าสู่ระบบในชื่อ {username}",
+      "fontSize": "ขนาดตัวอักษร",
+      "fontSizeSmall": "เล็ก",
+      "fontSizeMedium": "กลาง",
+      "fontSizeLarge": "ใหญ่",
+      "notificationSettings": "ตั้งค่าการแจ้งเตือน"
     },
     "changePassword": {
       "title": "เปลี่ยนรหัสผ่าน",

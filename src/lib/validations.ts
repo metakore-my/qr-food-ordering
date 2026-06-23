@@ -160,9 +160,16 @@ const staffOrderLineSchema = z.object({
     .default([]),
 });
 
-export const staffPlaceOrderSchema = z.object({
-  tableNumber: z.number().int().positive(),
-  idempotencyKey: z.string().min(1).max(128),
-  expectedTotal: z.number().nonnegative().optional(),
-  lines: z.array(staffOrderLineSchema).min(1).max(100),
-});
+export const staffPlaceOrderSchema = z
+  .object({
+    orderType: z.enum(["DINE_IN", "TAKEAWAY"]).default("DINE_IN"),
+    tableNumber: z.number().int().positive().optional(),
+    customerName: z.string().trim().max(100).optional(),
+    idempotencyKey: z.string().min(1).max(128),
+    expectedTotal: z.number().nonnegative().optional(),
+    lines: z.array(staffOrderLineSchema).min(1).max(100),
+  })
+  .refine((d) => d.orderType === "TAKEAWAY" || d.tableNumber != null, {
+    message: "Dine-in requires a table number",
+    path: ["tableNumber"],
+  });

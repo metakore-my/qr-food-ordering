@@ -164,11 +164,11 @@ model OptionChoiceTranslation {
 
 model Session {
   id        String        @id @default(cuid())
-  tableId   Int
+  tableId   Int?
   status    SessionStatus @default(ACTIVE)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
-  table     Table         @relation(fields: [tableId], references: [id])
+  table     Table?        @relation(fields: [tableId], references: [id], onDelete: SetNull)
   orders    Order[]
   cartItems CartItem[]
 
@@ -189,7 +189,7 @@ model CartItem {
   deviceId        String   @db.VarChar(36) // UUID per browser/device
   menuItemId      Int
   quantity        Int      @default(1)
-  selectedOptions String   @default("[]") @db.Text // JSON: [{ groupId, choiceIds }]
+  selectedOptions String   @db.Text // JSON: [{ groupId, choiceIds }] — always written by the app (cart-add serializes `[]` when empty); no DB default because Prisma's MySQL connector can't introspect a TEXT-column default and would otherwise report perpetual drift.
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   session         Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -202,14 +202,16 @@ model CartItem {
 }
 
 model Order {
-  id          Int         @id @default(autoincrement())
-  sessionId   String
-  status      OrderStatus @default(PENDING)
-  totalAmount Decimal     @db.Decimal(10, 2)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  session     Session     @relation(fields: [sessionId], references: [id])
-  items       OrderItem[]
+  id           Int         @id @default(autoincrement())
+  sessionId    String
+  status       OrderStatus @default(PENDING)
+  orderType    OrderType   @default(DINE_IN)
+  customerName String?     @db.VarChar(100)
+  totalAmount  Decimal     @db.Decimal(10, 2)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  session      Session     @relation(fields: [sessionId], references: [id])
+  items        OrderItem[]
 
   @@index([sessionId])
   @@index([createdAt])
@@ -224,6 +226,11 @@ enum OrderStatus {
   DECLINED
 }
 
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+}
+
 model OrderItem {
   id              Int      @id @default(autoincrement())
   orderId         Int
@@ -231,7 +238,7 @@ model OrderItem {
   itemName        String?  @db.VarChar(255) // canonical-locale dish-name snapshot at order time — survives menu rename/delete (menuItem is SetNull). Nullable for pre-migration rows; reads fall back to the live menuItem.names join then a "deleted item" label.
   quantity        Int
   unitPrice       Decimal  @db.Decimal(10, 2) // snapshot at order time (includes option adjustments)
-  selectedOptions String   @default("[]") @db.Text // JSON snapshot: [{ groupName, choiceName, priceAdjustment }]
+  selectedOptions String   @db.Text // JSON snapshot: [{ groupName, choiceName, priceAdjustment }] — always written by placeOrder; no DB default (see CartItem.selectedOptions note: Prisma can't introspect a TEXT default → perpetual drift).
   order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem        MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
 

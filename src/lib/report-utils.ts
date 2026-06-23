@@ -537,6 +537,61 @@ export function dayOfWeekProfile(
   return { buckets, totalOrders: total, busiestWeekday: busiest, quietestWeekday: quietest };
 }
 
+/** Per-channel (dine-in OR takeaway) stat with each channel's share of totals. */
+export interface ChannelStat {
+  orders: number;
+  revenue: number; // rounded to 2 dp
+  orderShare: number; // % of total orders, 1 dp, 0 when no orders
+  revenueShare: number; // % of total revenue, 1 dp, 0 when no revenue
+}
+
+export interface ChannelBreakdown {
+  dineIn: ChannelStat;
+  takeaway: ChannelStat;
+  totalOrders: number;
+  totalRevenue: number; // rounded to 2 dp
+}
+
+/**
+ * Split COMPLETED orders into dine-in vs takeaway with order counts, revenue
+ * (option-inclusive via lineRevenue), and each channel's share of the totals.
+ * Revenue is summed from order items (same basis as every other dashboard
+ * figure) — NOT order.totalAmount — so it can't drift from lineRevenue.
+ * Shares are 1-dp percentages; a zero denominator yields 0 (never NaN/∞).
+ */
+export function channelBreakdown(
+  orders: Array<{
+    orderType: "DINE_IN" | "TAKEAWAY";
+    items: Array<{ unitPrice: number | { toString(): string }; quantity: number }>;
+  }>
+): ChannelBreakdown {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  const acc = {
+    DINE_IN: { orders: 0, revenue: 0 },
+    TAKEAWAY: { orders: 0, revenue: 0 },
+  };
+  for (const o of orders) {
+    const rev = o.items.reduce((s, it) => s + lineRevenue(it), 0);
+    acc[o.orderType].orders += 1;
+    acc[o.orderType].revenue += rev;
+  }
+  const totalOrders = acc.DINE_IN.orders + acc.TAKEAWAY.orders;
+  const totalRevenue = acc.DINE_IN.revenue + acc.TAKEAWAY.revenue;
+  const stat = (c: { orders: number; revenue: number }): ChannelStat => ({
+    orders: c.orders,
+    revenue: round2(c.revenue),
+    orderShare: totalOrders > 0 ? round1((c.orders / totalOrders) * 100) : 0,
+    revenueShare: totalRevenue > 0 ? round1((c.revenue / totalRevenue) * 100) : 0,
+  });
+  return {
+    dineIn: stat(acc.DINE_IN),
+    takeaway: stat(acc.TAKEAWAY),
+    totalOrders,
+    totalRevenue: round2(totalRevenue),
+  };
+}
+
 /**
  * A decision-grade item pairing for "frequently ordered together".
  *

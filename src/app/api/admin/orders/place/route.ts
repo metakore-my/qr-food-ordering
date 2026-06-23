@@ -61,9 +61,21 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", issues: parsed.error.issues }, { status: 400 });
   }
-  const { tableNumber, idempotencyKey, expectedTotal, lines } = parsed.data;
+  const { orderType, tableNumber, customerName, idempotencyKey, expectedTotal, lines } = parsed.data;
 
   const s = await getSettings();
+
+  // Enforce the takeaway feature flag server-side, not just in the UI (the
+  // order-entry toggle is hidden when off, but the API is the security boundary
+  // — mirrors how R2/Turnstile/OpenRouter gate both surfaces). An `orders`
+  // staffer must not be able to create a takeaway order on a deploy that hasn't
+  // enabled the feature.
+  if (orderType === "TAKEAWAY" && !s.takeawayEnabled) {
+    return NextResponse.json(
+      { error: "Takeaway orders are disabled", code: "TAKEAWAY_DISABLED" },
+      { status: 403 }
+    );
+  }
 
   // Idempotency before any work — a same-key retry returns the original order.
   cleanupIdempotency();
@@ -81,19 +93,29 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Resolve the table by its human number (active only). Staff key this in.
-    const table = await prisma.table.findFirst({
-      where: { number: tableNumber, isActive: true },
-    });
-    if (!table) {
-      return NextResponse.json({ error: "Table not found or inactive", code: "TABLE_NOT_FOUND" }, { status: 404 });
+    // Resolve the session. Two shapes:
+    //  - table number given (dine-in OR a seated party's takeaway): reuse
+    //    getOrCreateSession (verifies token, locks the tables row, find-or-creates
+    //    the ACTIVE session) exactly as before.
+    //  - no table number (counter takeaway): create a fresh table-LESS session.
+    let session: { id: string };
+    if (tableNumber != null) {
+      const table = await prisma.table.findFirst({
+        where: { number: tableNumber, isActive: true },
+      });
+      if (!table) {
+        return NextResponse.json(
+          { error: "Table not found or inactive", code: "TABLE_NOT_FOUND" },
+          { status: 404 }
+        );
+      }
+      const signedToken = signTableToken(table.id, table.token);
+      ({ session } = await getOrCreateSession(signedToken));
+    } else {
+      // Counter takeaway: one-shot per ticket → a brand-new table-less session.
+      // No tables row to lock (there is none) — nothing to serialize against.
+      session = await prisma.session.create({ data: { tableId: null } });
     }
-
-    // Reuse getOrCreateSession by re-signing this table's QR token: it verifies
-    // the token, locks the tables row FOR UPDATE, and find-or-creates the ACTIVE
-    // session — auto-creating one for a table nobody has scanned yet.
-    const signedToken = signTableToken(table.id, table.token);
-    const { session } = await getOrCreateSession(signedToken);
 
     // Reserve the idempotency key with the -1 placeholder. NOTE: this get/set is
     // NOT atomic — a genuine CONCURRENT same-key request in the window between the
@@ -164,6 +186,8 @@ export async function POST(req: NextRequest) {
           lines: resolvedLines,
           expectedTotal,
           settings: s,
+          orderType,
+          customerName: orderType === "TAKEAWAY" ? (customerName ?? null) : null,
         });
       });
     } catch (txError) {
@@ -175,7 +199,8 @@ export async function POST(req: NextRequest) {
 
     log.info("StaffOrder", "Staff order placed", {
       orderId: order.id,
-      tableNumber,
+      orderType,
+      tableNumber: tableNumber ?? null,
       itemCount: order.items.length,
       total: Number(order.totalAmount),
     });
@@ -200,7 +225,7 @@ export async function POST(req: NextRequest) {
     if (known) {
       return NextResponse.json({ error: message, code: known.code }, { status: known.status });
     }
-    log.error("StaffOrder", "Staff order placement failed", { error: message, tableNumber });
+    log.error("StaffOrder", "Staff order placement failed", { error: message, orderType, tableNumber: tableNumber ?? null });
     return NextResponse.json({ error: "Failed to place order", code: "SERVER_ERROR" }, { status: 500 });
   }
 }

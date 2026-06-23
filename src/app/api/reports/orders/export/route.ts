@@ -93,6 +93,7 @@ export async function GET(req: NextRequest) {
       id: true,
       sessionId: true,
       status: true,
+      orderType: true,
       totalAmount: true,
       createdAt: true,
       items: {
@@ -126,11 +127,15 @@ export async function GET(req: NextRequest) {
   };
 
   // Compute the flat order-history rows ONCE (shared by both CSV and xlsx).
+  // orderType label keys live at `admin.reports.*`, not under the `excel.`
+  // prefix `t` is bound to — use `tShared` (no prefix) for them, else
+  // getNestedKey emits the raw "admin.reports.excel.orderType" path.
   const historyHeader = [
     t("orderId"),
     // Sortable YYYY-MM-DD for month pivots/filters; human Timestamp kept too.
     t("dateKey"),
     t("table"),
+    tShared("orderType"),
     t("sessionId"),
     t("items"),
     t("total").replace("{currencyCode}", code),
@@ -148,7 +153,16 @@ export async function GET(req: NextRequest) {
     return {
       id: order.id,
       date: formatDeploymentDateKey(order.createdAt, s.timezone),
-      table: t("tableNumber").replace("{number}", String(order.session?.table?.number ?? "?")),
+      // Null table = takeaway order (no table scanned) — label it as such
+      // instead of the "?" placeholder.
+      table:
+        order.session?.table?.number != null
+          ? t("tableNumber").replace("{number}", String(order.session.table.number))
+          : tShared("orderTypeTakeaway"),
+      orderType:
+        order.orderType === "TAKEAWAY"
+          ? tShared("orderTypeTakeaway")
+          : tShared("orderTypeDineIn"),
       sessionId: order.sessionId.slice(-8),
       items: itemNames,
       total: Number(order.totalAmount),
@@ -176,7 +190,7 @@ export async function GET(req: NextRequest) {
       ]);
     }
     for (const r of historyRows) {
-      csvRows.push([r.id, r.date, r.table, r.sessionId, r.items, r.total, r.timestamp, r.status]);
+      csvRows.push([r.id, r.date, r.table, r.orderType, r.sessionId, r.items, r.total, r.timestamp, r.status]);
     }
     // Prepend a UTF-8 BOM so Excel-for-Windows opens Thai/CJK text correctly.
     return new Response(Buffer.from(withUtf8Bom(Buffer.from(toCsv(csvRows), "utf-8"))), {
@@ -199,6 +213,7 @@ export async function GET(req: NextRequest) {
     { header: t("orderId"), key: "id", width: 12 },
     { header: t("dateKey"), key: "date", width: 14 },
     { header: t("table"), key: "table", width: 20 },
+    { header: tShared("orderType"), key: "orderType", width: 14 },
     { header: t("sessionId"), key: "sessionId", width: 18 },
     { header: t("items"), key: "items", width: 60 },
     { header: t("total").replace("{currencyCode}", code), key: "total", width: 15 },

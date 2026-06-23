@@ -7,6 +7,7 @@ import { useConfig } from "@/components/providers/config-provider";
 import { formatMoneyWith } from "@/lib/money-client";
 import { computeUnitPrice, computeOrderTotal } from "@/lib/order-utils";
 import { ItemOptionsSheet, type SelectedOption } from "@/components/menu/item-options-sheet";
+import { visibleItems } from "@/lib/order-entry-filter";
 
 interface MenuItemDTO {
   id: number;
@@ -16,6 +17,7 @@ interface MenuItemDTO {
   imageUrl?: string;
   isAvailable: boolean;
   isCombo: boolean;
+  isFeatured: boolean;
   comboBasePrice: number | null;
   optionGroups: Array<{
     id: number;
@@ -36,7 +38,7 @@ interface CartLine {
 
 interface OrderEntryProps {
   locale: string;
-  items: MenuItemDTO[];
+  categories: Array<{ id: number; name: string; items: MenuItemDTO[] }>;
   activeTables: Array<{ id: number; number: number }>;
 }
 
@@ -58,17 +60,27 @@ function lineKey(menuItemId: number, sel: SelectedOption[]): string {
   return `${menuItemId}:${JSON.stringify(norm)}`;
 }
 
-export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
+export function OrderEntry({ locale, categories, activeTables }: OrderEntryProps) {
   const t = useTranslations("admin.orderEntry");
   const router = useRouter();
-  const { currency, decimals } = useConfig();
+  const { currency, decimals, takeawayEnabled } = useConfig();
 
   const [tableInput, setTableInput] = useState("");
+  const [orderType, setOrderType] = useState<"DINE_IN" | "TAKEAWAY">("DINE_IN");
+  const [customerName, setCustomerName] = useState("");
   const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<number | "featured">(
+    categories[0]?.id ?? "featured"
+  );
+  const hasFeatured = useMemo(
+    () => categories.some((c) => c.items.some((it) => it.isFeatured)),
+    [categories]
+  );
   const [lines, setLines] = useState<CartLine[]>([]);
   const [sheetItem, setSheetItem] = useState<MenuItemDTO | null>(null);
   const [placing, setPlacing] = useState(false);
   const [placedNumber, setPlacedNumber] = useState<number | null>(null);
+  const [placedTakeaway, setPlacedTakeaway] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
 
@@ -82,10 +94,18 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
     [tableNumber, activeTables]
   );
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return items.filter((it) => it.isAvailable && (q === "" || it.name.toLowerCase().includes(q)));
-  }, [items, search]);
+  // Place gate: dine-in needs a valid table; takeaway allows a blank table
+  // (counter takeaway) OR a valid table (seated party). A non-empty but invalid
+  // table number blocks placement in either mode (tableValid is false).
+  const canPlace =
+    lines.length > 0 &&
+    !placing &&
+    (orderType === "TAKEAWAY" ? tableInput === "" || tableValid : tableValid);
+
+  const filtered = useMemo(
+    () => visibleItems(categories, activeCategory, search),
+    [categories, activeCategory, search]
+  );
 
   const fmt = useCallback((v: number) => formatMoneyWith(v, { currency, decimals, locale }), [currency, decimals, locale]);
 
@@ -127,7 +147,7 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
 
   async function handlePlace() {
     if (submittingRef.current) return;
-    if (!tableValid || tableNumber == null || lines.length === 0) return;
+    if (!canPlace) return;
     submittingRef.current = true;
     setPlacing(true);
     setError(null);
@@ -136,7 +156,9 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tableNumber,
+          orderType,
+          ...(tableNumber != null && tableValid ? { tableNumber } : {}),
+          ...(orderType === "TAKEAWAY" && customerName.trim() ? { customerName: customerName.trim() } : {}),
           idempotencyKey: crypto.randomUUID(),
           expectedTotal: total,
           lines: lines.map((l) => ({ menuItemId: l.item.id, quantity: l.quantity, selectedOptions: l.selectedOptions })),
@@ -157,8 +179,15 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
         }
         return;
       }
-      setPlacedNumber(tableNumber);
+      if (orderType === "TAKEAWAY" && (tableInput === "" || tableNumber == null)) {
+        setPlacedTakeaway(true);
+        setPlacedNumber(null);
+      } else {
+        setPlacedNumber(tableNumber);
+        setPlacedTakeaway(false);
+      }
       setLines([]);
+      setCustomerName("");
     } catch {
       setError(t("errors.SERVER_ERROR"));
     } finally {
@@ -167,15 +196,17 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
     }
   }
 
-  if (placedNumber != null) {
+  if (placedNumber != null || placedTakeaway) {
     return (
       <div className="p-4">
         <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
           <h2 className="text-lg font-bold text-gray-900">{t("placedTitle")}</h2>
-          <p className="mt-2 text-sm text-gray-600">{t("placedBody", { number: placedNumber })}</p>
+          <p className="mt-2 text-sm text-gray-600">
+            {placedNumber != null ? t("placedBody", { number: placedNumber }) : t("placedTakeawayBody")}
+          </p>
           <button
             type="button"
-            onClick={() => { setPlacedNumber(null); setTableInput(""); }}
+            onClick={() => { setPlacedNumber(null); setPlacedTakeaway(false); setTableInput(""); }}
             className="mt-4 min-h-[44px] rounded-lg bg-primary-700 px-4 text-sm font-semibold text-white"
           >
             {t("placeAnother")}
@@ -186,8 +217,31 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
   }
 
   return (
-    <div className="grid gap-4 p-4 lg:grid-cols-[1fr_360px]">
-      <div>
+    <div className="mx-auto grid max-w-6xl gap-4 p-4 md:p-6 lg:grid-cols-[1fr_22rem] lg:items-start">
+      <div className="min-w-0 rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        {takeawayEnabled && (
+          <div role="radiogroup" aria-label={t("orderTypeLabel")} className="mb-3 flex gap-2">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={orderType === "DINE_IN"}
+              onClick={() => setOrderType("DINE_IN")}
+              className={`min-h-[44px] rounded-lg px-4 text-sm font-semibold ${orderType === "DINE_IN" ? "bg-primary-700 text-white" : "border border-gray-300 bg-white text-gray-700"}`}
+            >
+              {t("dineIn")}
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={orderType === "TAKEAWAY"}
+              onClick={() => setOrderType("TAKEAWAY")}
+              className={`min-h-[44px] rounded-lg px-4 text-sm font-semibold ${orderType === "TAKEAWAY" ? "bg-primary-700 text-white" : "border border-gray-300 bg-white text-gray-700"}`}
+            >
+              {t("takeaway")}
+            </button>
+          </div>
+        )}
+
         <label className="block text-sm font-medium text-gray-700">{t("tableLabel")}</label>
         <input
           inputMode="numeric"
@@ -203,32 +257,76 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
           </p>
         )}
 
+        {takeawayEnabled && orderType === "TAKEAWAY" && (
+          <input
+            type="text"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            maxLength={100}
+            placeholder={t("customerNamePlaceholder")}
+            aria-label={t("customerNameLabel")}
+            className="mt-1 min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3"
+          />
+        )}
+
+        <div role="tablist" aria-label={t("categoryTabsLabel")} className="mt-4 -mx-1 flex gap-2 overflow-x-auto whitespace-nowrap px-1 pb-1">
+          {hasFeatured && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeCategory === "featured"}
+              onClick={() => setActiveCategory("featured")}
+              className={`min-h-[44px] shrink-0 rounded-lg px-3 text-sm font-semibold ${activeCategory === "featured" ? "bg-primary-700 text-white" : "border border-gray-300 bg-white text-gray-700"}`}
+            >
+              ⭐ {t("featured")}
+            </button>
+          )}
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              role="tab"
+              aria-selected={activeCategory === cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`min-h-[44px] shrink-0 rounded-lg px-3 text-sm font-semibold ${activeCategory === cat.id ? "bg-primary-700 text-white" : "border border-gray-300 bg-white text-gray-700"}`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("searchPlaceholder")}
-          className="mt-4 min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3"
+          className="mt-3 min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3"
         />
 
-        <ul className="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
-          {filtered.length === 0 && <li className="p-4 text-sm text-gray-500">{t("noResults")}</li>}
-          {filtered.map((item) => (
-            <li key={item.id} className="flex items-center justify-between gap-3 p-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
-                <p className="text-xs text-gray-500">{fmt(item.isCombo && item.comboBasePrice != null ? item.comboBasePrice : item.price)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onAddClick(item)}
-                className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg bg-primary-700 px-3 text-sm font-semibold text-white"
+        {filtered.length === 0 ? (
+          <p className="mt-3 rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">{t("noResults")}</p>
+        ) : (
+          <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {filtered.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:border-primary-300 hover:bg-primary-50/40"
               >
-                {item.optionGroups.length > 0 ? t("choose") : "+"}
-              </button>
-            </li>
-          ))}
-        </ul>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
+                  <p className="text-xs text-gray-500">{fmt(item.isCombo && item.comboBasePrice != null ? item.comboBasePrice : item.price)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onAddClick(item)}
+                  className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg bg-primary-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-primary-800"
+                >
+                  {item.optionGroups.length > 0 ? t("choose") : "+"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Below lg the summary renders after the (potentially long) menu list, so
@@ -236,7 +334,7 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
           running total + Place Order without scrolling the whole menu. On lg+ it's
           a normal right-hand column. max-h + overflow keeps a long order scrollable
           without the sticky panel eating the screen. */}
-      <aside className="sticky bottom-[calc(48px+env(safe-area-inset-bottom,0px))] z-30 max-h-[60vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg md:bottom-0 lg:static lg:bottom-auto lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none">
+      <aside className="sticky bottom-[calc(48px+env(safe-area-inset-bottom,0px))] z-30 max-h-[60vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 shadow-lg md:bottom-0 lg:sticky lg:top-6 lg:bottom-auto lg:z-auto lg:max-h-[calc(100vh-3rem)] lg:shadow-sm">
         <h2 className="text-sm font-bold text-gray-900">{t("orderHeading")}</h2>
         {lines.length === 0 ? (
           <p className="mt-2 text-sm text-gray-500">{t("emptyOrder")}</p>
@@ -261,11 +359,11 @@ export function OrderEntry({ locale, items, activeTables }: OrderEntryProps) {
         </div>
 
         {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
-        {!tableValid && lines.length > 0 && <p className="mt-2 text-sm text-amber-700">{t("selectTableFirst")}</p>}
+        {orderType === "DINE_IN" && !tableValid && lines.length > 0 && <p className="mt-2 text-sm text-amber-700">{t("selectTableFirst")}</p>}
 
         <button
           type="button"
-          disabled={placing || !tableValid || lines.length === 0}
+          disabled={!canPlace}
           onClick={handlePlace}
           className="mt-3 min-h-[44px] w-full rounded-lg bg-primary-700 px-4 text-sm font-semibold text-white disabled:opacity-50"
         >

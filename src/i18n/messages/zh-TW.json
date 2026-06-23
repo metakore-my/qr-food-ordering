@@ -118,7 +118,8 @@
     "confirmRemoveItem": "確定要從此訂單中移除「{name}」嗎？",
     "declined": "已拒絕",
     "decline": "拒絕",
-    "confirmDecline": "要拒絕此訂單嗎？此操作無法復原。"
+    "confirmDecline": "要拒絕此訂單嗎？此操作無法復原。",
+    "takeawayLabel": "外帶"
   },
   "checkout": {
     "title": "結帳",
@@ -231,7 +232,6 @@
       "subtitle": "管理餐廳名稱、貨幣、語言及品牌形象。",
       "tabGeneral": "一般",
       "tabBranding": "品牌",
-      "tabNotifications": "通知",
       "appName": "餐廳名稱",
       "currency": "貨幣",
       "defaultLocale": "預設語言",
@@ -274,6 +274,8 @@
       "soundVolumeHint": "設定本裝置的提示音音量。預設為最大音量，適合嘈雜的環境。",
       "soundTest": "測試提示音",
       "soundDeviceNote": "提示：請在需要響鈴的裝置上保持訂單看板開啟。重新載入頁面後，可能需要點擊一次以重新啟用聲音——這是瀏覽器的安全限制。",
+      "takeawayEnabled": "啟用外帶訂單",
+      "takeawayEnabledHint": "讓員工在無桌號的情況下建立外帶訂單，預設為關閉。",
       "backup": {
         "title": "菜單備份與還原",
         "description": "將您的完整菜單（類別、品項、選項及所有翻譯）下載為檔案妥善保存。若日後編輯時不小心弄亂了菜單，只需還原該備份檔案即可全部復原。備份僅涵蓋菜單內容——訂單與報表完全不受影響。",
@@ -308,7 +310,12 @@
       "tapToEnableSound": "點擊以啟用訂單提示音",
       "soundArmed": "聲音已開啟",
       "botProtectionDisabled": "此部署尚未設定機器人防護（CAPTCHA）。管理員登入僅依賴速率限制與密碼驗證。",
-      "noAccess": "您目前尚未獲得任何區塊的存取權限。請聯絡超級管理員為您授予相應權限。"
+      "noAccess": "您目前尚未獲得任何區塊的存取權限。請聯絡超級管理員為您授予相應權限。",
+      "takeawayBadge": "外帶",
+      "takeawayNamed": "外帶 · {name}",
+      "takeawayUnnamed": "外帶 #{id}",
+      "markCollected": "標記已取餐",
+      "confirmCollect": "將此外帶訂單標記為已取餐並完成付款？"
     },
     "tables": {
       "title": "桌台管理",
@@ -657,7 +664,17 @@
         "subtotal": "小計 ({currencyCode})",
         "truncatedWarning": "已截斷",
         "truncatedDetail": "顯示 {shown} / 共 {total} 筆訂單——請縮小日期範圍以取得完整記錄。"
-      }
+      },
+      "orderType": "訂單類型",
+      "orderTypeDineIn": "內用",
+      "orderTypeTakeaway": "外帶",
+      "channelTitle": "內用 vs 外帶",
+      "channelDineIn": "內用",
+      "channelTakeaway": "外帶",
+      "channelOrders": "訂單數",
+      "channelRevenue": "收入",
+      "channelShare": "佔比",
+      "channelTotal": "總計"
     },
     "orderEntry": {
       "title": "代客下單",
@@ -689,7 +706,15 @@
         "SESSION_INACTIVE": "該桌台的工作階段已結束，請重新開始下單。",
         "ORDER_IN_PROGRESS": "該訂單正在處理中，請稍候。",
         "SERVER_ERROR": "下單時發生錯誤，請再試一次。"
-      }
+      },
+      "placedTakeawayBody": "外帶訂單已送至廚房。",
+      "orderTypeLabel": "訂單類型",
+      "dineIn": "內用",
+      "takeaway": "外帶",
+      "customerNameLabel": "顧客姓名",
+      "customerNamePlaceholder": "顧客姓名（選填）",
+      "featured": "精選",
+      "categoryTabsLabel": "依分類瀏覽"
     },
     "checkoutScanner": {
       "title": "結帳掃描",
@@ -725,7 +750,12 @@
       "expandSidebar": "展開側邊欄",
       "collapseSidebar": "收起側邊欄",
       "changePassword": "更改密碼",
-      "loggedInAs": "已登入：{username}"
+      "loggedInAs": "已登入：{username}",
+      "fontSize": "字體大小",
+      "fontSizeSmall": "小",
+      "fontSizeMedium": "中",
+      "fontSizeLarge": "大",
+      "notificationSettings": "通知設定"
     },
     "changePassword": {
       "title": "更改密碼",

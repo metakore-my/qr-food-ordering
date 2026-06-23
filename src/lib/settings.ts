@@ -15,6 +15,7 @@ export const SETTING_KEYS = [
   "brand_theme",
   "brand_color",
   "logo_url",
+  "takeaway_enabled",
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -38,6 +39,7 @@ export interface ResolvedSettings {
   brandTheme: string;
   brandColor: string | null;
   logoUrl: string | null;
+  takeawayEnabled: boolean;
   setupComplete: boolean;
 }
 
@@ -100,6 +102,7 @@ export function resolveSettings(
   // read it via a widened cast — getSettings() includes it in the findMany.
   const setupComplete =
     (db as Record<string, string | undefined>).setup_completed === "true";
+  const takeawayEnabled = db.takeaway_enabled?.trim() === "true";
 
   return {
     appName,
@@ -113,6 +116,7 @@ export function resolveSettings(
     brandTheme,
     brandColor: db.brand_color?.trim() || null,
     logoUrl: db.logo_url?.trim() || null,
+    takeawayEnabled,
     setupComplete,
   };
 }
@@ -263,6 +267,16 @@ export function validateSettingsInput(
     }
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       return { ok: false, error: `logo_url must be an http(s) URL` };
+    }
+  }
+
+  // takeaway_enabled is a boolean-as-string toggle. It is NOT locked after setup
+  // (unlike currency/canonical_locale — it anchors no stored order data), so this
+  // check lives OUTSIDE the lock block and is always enforced.
+  if (patch.takeaway_enabled !== undefined) {
+    const v = patch.takeaway_enabled.trim();
+    if (v !== "true" && v !== "false") {
+      return { ok: false, error: "takeaway_enabled must be 'true' or 'false'" };
     }
   }
   return { ok: true };

@@ -42,7 +42,10 @@ interface SessionData {
   id: string;
   status: string;
   createdAt: string;
-  table: { id: number; number: number };
+  // Null for a takeaway (table-less) session. The scanner is reached by a
+  // table-QR scan so it's dine-in in practice, but guard the deref so a
+  // table-less session never renders "Table undefined".
+  table: { id: number; number: number } | null;
   grandTotal: number;
   orders: Order[];
 }
@@ -383,7 +386,9 @@ export function CheckoutScanner() {
       const result = await res.json();
       setSuccess(
         t("checkoutSuccess", {
-          table: result.tableNumber,
+          // tableNumber is null for a table-less (takeaway) session — fall back
+          // to the localized takeaway label so the message never reads "Table ".
+          table: result.tableNumber ?? tOrder("takeawayLabel"),
           total: money(result.grandTotal),
         })
       );
@@ -393,7 +398,7 @@ export function CheckoutScanner() {
     } finally {
       setCheckoutLoading(false);
     }
-  }, [sessionData, t, tCommon, money]);
+  }, [sessionData, t, tCommon, tOrder, money]);
 
   // Force-close an ACTIVE table without a checkout. The settlement flow needs at
   // least one CONFIRMED order, so a session where every order was DECLINED (or
@@ -437,14 +442,18 @@ export function CheckoutScanner() {
         return;
       }
 
-      setSuccess(t("closeTableSuccess", { table: sessionData.table.number }));
+      setSuccess(
+        t("closeTableSuccess", {
+          table: sessionData.table?.number ?? tOrder("takeawayLabel"),
+        })
+      );
       setSessionData(null);
     } catch {
       setError(tCommon("error"));
     } finally {
       setCheckoutLoading(false);
     }
-  }, [sessionData, t, tCommon, confirm]);
+  }, [sessionData, t, tCommon, tOrder, confirm]);
 
   // Start/stop QR scanner
   const toggleScanner = useCallback(async () => {
@@ -609,7 +618,7 @@ export function CheckoutScanner() {
           <div className="border-b border-gray-200 px-4 py-4">
             <div className="flex items-center gap-3">
               <span className="rounded-md bg-primary-500/10 px-2 py-1 text-sm font-bold text-primary-500">
-                {tOrder("tableNumber", { number: sessionData.table.number })}
+                {sessionData.table ? tOrder("tableNumber", { number: sessionData.table.number }) : tOrder("takeawayLabel")}
               </span>
               <span className="text-sm text-gray-500">
                 {t("sessionId")}: {sessionData.id.slice(0, 8)}...
@@ -643,7 +652,7 @@ export function CheckoutScanner() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="rounded-md bg-primary-500/10 px-2 py-1 text-sm font-bold text-primary-500">
-                  {tOrder("tableNumber", { number: sessionData.table.number })}
+                  {sessionData.table ? tOrder("tableNumber", { number: sessionData.table.number }) : tOrder("takeawayLabel")}
                 </span>
                 <span className="text-sm text-gray-500">
                   {t("sessionId")}: {sessionData.id.slice(0, 8)}...

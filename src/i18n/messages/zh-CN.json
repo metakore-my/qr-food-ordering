@@ -115,10 +115,11 @@
     "tableNumber": "桌号 {number}",
     "editFailed": "更新订单失败",
     "confirmAllPartial": "{total} 个订单中有 {failed} 个无法确认，请重试。",
-    "confirmRemoveItem": "确定要从此订单中移除\u201c{name}\u201d吗？",
+    "confirmRemoveItem": "确定要从此订单中移除“{name}”吗？",
     "declined": "已拒绝",
     "decline": "拒绝",
-    "confirmDecline": "拒绝此订单？此操作无法撤销。"
+    "confirmDecline": "拒绝此订单？此操作无法撤销。",
+    "takeawayLabel": "外带"
   },
   "checkout": {
     "title": "结账",
@@ -231,7 +232,6 @@
       "subtitle": "管理餐厅名称、货币、语言及品牌形象。",
       "tabGeneral": "常规",
       "tabBranding": "品牌",
-      "tabNotifications": "通知",
       "appName": "餐厅名称",
       "currency": "货币",
       "defaultLocale": "默认语言",
@@ -295,7 +295,9 @@
         "restoreEmptyName": "备份中有菜品完全没有名称，文件可能已损坏。",
         "restoreTooLarge": "该备份文件过大，无法恢复（超过 10 MB），文件可能已损坏。",
         "restoreError": "恢复失败，您的菜单未作任何更改。"
-      }
+      },
+      "takeawayEnabled": "启用外带订单",
+      "takeawayEnabledHint": "允许工作人员为顾客下外带（打包）订单，无需关联桌台。默认关闭。"
     },
     "dashboard": {
       "title": "订单看板",
@@ -308,7 +310,12 @@
       "tapToEnableSound": "点击以启用订单提示音",
       "soundArmed": "提示音已开启",
       "botProtectionDisabled": "此部署未配置机器人防护（CAPTCHA）。管理员登录仅依赖速率限制和密码验证。",
-      "noAccess": "您暂无任何模块的访问权限。请联系超级管理员为您授权。"
+      "noAccess": "您暂无任何模块的访问权限。请联系超级管理员为您授权。",
+      "takeawayBadge": "外带",
+      "takeawayNamed": "外带 · {name}",
+      "takeawayUnnamed": "外带 #{id}",
+      "markCollected": "标记已取餐",
+      "confirmCollect": "将此外带订单标记为已取餐并结清？"
     },
     "tables": {
       "title": "桌台管理",
@@ -657,7 +664,17 @@
         "subtotal": "小计 ({currencyCode})",
         "truncatedWarning": "已截断",
         "truncatedDetail": "显示 {shown} / {total} 单订单——请缩小日期范围以获取完整数据。"
-      }
+      },
+      "orderType": "订单类型",
+      "orderTypeDineIn": "堂食",
+      "orderTypeTakeaway": "外带",
+      "channelTitle": "堂食 vs 外带",
+      "channelDineIn": "堂食",
+      "channelTakeaway": "外带",
+      "channelOrders": "订单数",
+      "channelRevenue": "收入",
+      "channelShare": "占比",
+      "channelTotal": "总计"
     },
     "orderEntry": {
       "title": "代客下单",
@@ -689,7 +706,15 @@
         "SESSION_INACTIVE": "该桌台会话已关闭，请重新开始下单。",
         "ORDER_IN_PROGRESS": "该订单正在提交中，请稍候。",
         "SERVER_ERROR": "下单时发生错误，请重试。"
-      }
+      },
+      "placedTakeawayBody": "外带订单已发送至后厨。",
+      "orderTypeLabel": "订单类型",
+      "dineIn": "堂食",
+      "takeaway": "外带",
+      "customerNameLabel": "顾客姓名",
+      "customerNamePlaceholder": "顾客姓名（可选）",
+      "featured": "精选",
+      "categoryTabsLabel": "按分类浏览"
     },
     "checkoutScanner": {
       "title": "结账扫码",
@@ -725,7 +750,12 @@
       "expandSidebar": "展开侧边栏",
       "collapseSidebar": "收起侧边栏",
       "changePassword": "修改密码",
-      "loggedInAs": "登录账号：{username}"
+      "loggedInAs": "登录账号：{username}",
+      "fontSize": "字体大小",
+      "fontSizeSmall": "小",
+      "fontSizeMedium": "中",
+      "fontSizeLarge": "大",
+      "notificationSettings": "通知设置"
     },
     "changePassword": {
       "title": "修改密码",

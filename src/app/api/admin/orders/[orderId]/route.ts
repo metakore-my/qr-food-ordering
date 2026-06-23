@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { isValidOrderTransition } from "@/lib/order-utils";
+import { settlementMode } from "@/lib/takeaway-settlement";
 import { localeFilterFromCookie } from "@/lib/locale-filter";
 import { getSettings } from "@/lib/settings";
 
@@ -86,7 +87,7 @@ export async function PATCH(
         throw new Error(`INVALID_TRANSITION:${existing.status}`);
       }
 
-      return tx.order.update({
+      const updated = await tx.order.update({
         where: { id: orderIdNum },
         data: { status: parsed.data.status },
         include: {
@@ -104,6 +105,21 @@ export async function PATCH(
           },
         },
       });
+
+      // Counter takeaway (table-less) is one-shot: when its only/last live order
+      // is declined, expire the now-empty session immediately rather than leaving
+      // it ACTIVE until the 4h cron sweep. Dine-in / seated (table-bound) sessions
+      // are untouched — they settle via the table-QR checkout.
+      if (parsed.data.status === "DECLINED" && settlementMode(existing.session) === "order") {
+        const remaining = await tx.order.count({
+          where: { sessionId: existing.sessionId, status: { in: ["PENDING", "CONFIRMED"] } },
+        });
+        if (remaining === 0) {
+          await tx.session.update({ where: { id: existing.sessionId }, data: { status: "EXPIRED" } });
+        }
+      }
+
+      return updated;
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "";

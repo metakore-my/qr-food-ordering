@@ -5,6 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-06-23
+
+### Added
+
+- Takeaway / pickup orders, alongside dine-in. Staff place a takeaway order from
+  the Place Order screen — pick "Takeaway", optionally type a customer name, and
+  (for a seated guest who also wants something to go) optionally a table number.
+  It shows on the kitchen board with a "Takeaway" badge and is settled with a
+  "Mark collected" action; a takeaway added to a seated table's bill is settled
+  together with that table at checkout. Off by default — turn it on in Settings.
+- Reports now break orders down by Dine-in vs Takeaway: a "Dine-in vs Takeaway"
+  card on the analytics dashboard shows each channel's order count, revenue, and
+  share of the total, and the order-history export gains an "Order type" column.
+- Staff order entry now groups the menu into category tabs with a Featured
+  shortcut, so staff can find items fast on a large menu (search still spans the
+  whole menu).
+- Admins can now set the admin console's text size (small / medium / large) per
+  device, from the sidebar — handy on a shared kitchen tablet that needs larger
+  text. Each device remembers its own choice.
+- The new-order sound settings are now reachable by every admin from the sidebar
+  (previously only available to superadmins on the Settings page).
+
+### Fixed
+
+- Settings changes now take effect immediately across the admin console without
+  a manual page reload — changing the theme and saving it now recolors the next
+  admin page you open (it no longer reverted to the old colors), and turning
+  maintenance mode on or off shows or clears the banner right away.
+
 ## [1.0.2] - 2026-06-19
 
 ### Changed
@@ -173,6 +202,7 @@ prior version to change, remove, or fix against.
 - Responsive layout verified across 320px–1440px (touch targets, iOS input zoom,
   safe-area insets, sticky elements).
 
+[1.0.3]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.3
 [1.0.2]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.2
 [1.0.1]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.1
 [1.0.0]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.0

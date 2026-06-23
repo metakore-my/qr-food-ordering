@@ -118,7 +118,8 @@
     "editFailed": "Gagal mengemas kini pesanan",
     "confirmAllPartial": "{failed} daripada {total} pesanan tidak dapat disahkan. Sila cuba lagi.",
     "confirmRemoveItem": "Adakah anda pasti mahu membuang \"{name}\" daripada pesanan ini?",
-    "confirmDecline": "Tolak pesanan ini? Tindakan ini tidak boleh dibatalkan."
+    "confirmDecline": "Tolak pesanan ini? Tindakan ini tidak boleh dibatalkan.",
+    "takeawayLabel": "Bungkus"
   },
   "checkout": {
     "title": "Pembayaran",
@@ -231,7 +232,6 @@
       "subtitle": "Urus nama restoran, mata wang, bahasa, dan penjenamaan anda.",
       "tabGeneral": "Umum",
       "tabBranding": "Penjenamaan",
-      "tabNotifications": "Pemberitahuan",
       "appName": "Nama restoran",
       "currency": "Mata wang",
       "defaultLocale": "Bahasa lalai",
@@ -274,6 +274,8 @@
       "soundVolumeHint": "Tetapkan kelantangan bunyi peringatan pada peranti ini. Lalai kepada maksimum untuk persekitaran yang bising.",
       "soundTest": "Uji bunyi",
       "soundDeviceNote": "Petua: pastikan Papan Pemuka Pesanan dibuka pada peranti yang perlu berbunyi. Selepas memuat semula halaman, anda mungkin perlu mengetik sekali untuk mendayakan bunyi semula — ini adalah keperluan pelayar web.",
+      "takeawayEnabled": "Aktifkan pesanan bungkus",
+      "takeawayEnabledHint": "Benarkan kakitangan membuat pesanan untuk diambil, tanpa meja. Dimatikan secara lalai.",
       "backup": {
         "title": "Sandaran & Pulih Menu",
         "description": "Muat turun salinan keseluruhan menu anda (kategori, item, pilihan, dan semua terjemahan) sebagai fail untuk disimpan. Jika anda tersalah edit menu, pulihkan fail tersebut untuk membuat asal semua perubahan. Sandaran meliputi menu sahaja — pesanan dan laporan anda tidak terjejas.",
@@ -308,7 +310,12 @@
       "tapToEnableSound": "Ketik untuk dayakan bunyi pesanan",
       "soundArmed": "Bunyi aktif",
       "botProtectionDisabled": "Perlindungan bot (CAPTCHA) tidak dikonfigurasi untuk pemasangan ini. Log masuk admin berfungsi dengan pengehadan kadar dan semakan kata laluan sahaja.",
-      "noAccess": "Anda belum mempunyai akses kepada mana-mana bahagian. Sila hubungi pentadbir super untuk memberikan kebenaran kepada anda."
+      "noAccess": "Anda belum mempunyai akses kepada mana-mana bahagian. Sila hubungi pentadbir super untuk memberikan kebenaran kepada anda.",
+      "takeawayBadge": "Bungkus",
+      "takeawayNamed": "Bungkus · {name}",
+      "takeawayUnnamed": "Bungkus #{id}",
+      "markCollected": "Tandakan diterima",
+      "confirmCollect": "Tandakan pesanan bungkus ini sebagai diterima dan dibayar?"
     },
     "tables": {
       "title": "Pengurusan Meja",
@@ -608,6 +615,13 @@
       "noMenuItems": "Tiada item menu untuk dinilai",
       "tabAnalytics": "Analitik",
       "tabOrderHistory": "Sejarah Pesanan",
+      "channelTitle": "Makan di sini vs Bungkus",
+      "channelDineIn": "Makan di sini",
+      "channelTakeaway": "Bungkus",
+      "channelOrders": "Pesanan",
+      "channelRevenue": "Hasil",
+      "channelShare": "Bahagian",
+      "channelTotal": "Jumlah",
       "orderHistory": {
         "statusAll": "Semua",
         "statusCompleted": "Selesai",
@@ -624,6 +638,9 @@
         "tableFilterLabel": "Meja",
         "tableFilterAll": "Semua meja"
       },
+      "orderType": "Jenis pesanan",
+      "orderTypeDineIn": "Makan di sini",
+      "orderTypeTakeaway": "Bungkus",
       "retentionNotice": "Rekod yang lebih daripada 90 hari akan dipadam secara automatik. Muat turun laporan anda pada penghujung setiap bulan dan simpan fail tersebut untuk audit tahunan dan rekod cukai anda.",
       "completedOrders": "Pesanan Selesai",
       "rangePreset": "Pratetap",
@@ -679,6 +696,12 @@
       "selectTableFirst": "Pilih meja untuk menghantar pesanan.",
       "placedTitle": "Pesanan dihantar",
       "placedBody": "Pesanan untuk Meja {number} telah dihantar ke dapur.",
+      "placedTakeawayBody": "Pesanan bungkus telah dihantar ke dapur.",
+      "orderTypeLabel": "Jenis pesanan",
+      "dineIn": "Makan di sini",
+      "takeaway": "Bungkus",
+      "customerNameLabel": "Nama pelanggan",
+      "customerNamePlaceholder": "Nama pelanggan (pilihan)",
       "placeAnother": "Hantar lagi",
       "errors": {
         "TABLE_NOT_FOUND": "Nombor meja tersebut tidak aktif. Semak nombor dan cuba lagi.",
@@ -689,7 +712,9 @@
         "SESSION_INACTIVE": "Sesi meja tersebut telah ditutup. Mulakan pesanan semula.",
         "ORDER_IN_PROGRESS": "Pesanan tersebut sedang diproses. Sila tunggu.",
         "SERVER_ERROR": "Sesuatu telah berlaku semasa menghantar pesanan. Sila cuba lagi."
-      }
+      },
+      "featured": "Pilihan",
+      "categoryTabsLabel": "Semak imbas mengikut kategori"
     },
     "checkoutScanner": {
       "title": "Pengimbas Pembayaran",
@@ -725,7 +750,12 @@
       "expandSidebar": "Luaskan bar sisi",
       "collapseSidebar": "Ciutkan bar sisi",
       "changePassword": "Tukar Kata Laluan",
-      "loggedInAs": "Log masuk sebagai {username}"
+      "loggedInAs": "Log masuk sebagai {username}",
+      "fontSize": "Saiz teks",
+      "fontSizeSmall": "Kecil",
+      "fontSizeMedium": "Sederhana",
+      "fontSizeLarge": "Besar",
+      "notificationSettings": "Tetapan pemberitahuan"
     },
     "changePassword": {
       "title": "Tukar Kata Laluan",

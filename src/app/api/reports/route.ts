@@ -10,6 +10,7 @@ import {
   clockHourProfile,
   dayOfWeekProfile,
   topItemPairs,
+  channelBreakdown,
 } from "@/lib/report-utils";
 import { getSettings } from "@/lib/settings";
 import { hourlyBucketFormatter } from "@/lib/date";
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
     select: {
       createdAt: true,
       totalAmount: true,
+      orderType: true,
       items: {
         select: {
           menuItemId: true,
@@ -194,7 +196,7 @@ export async function GET(req: NextRequest) {
   // Revenue by category
   const categoryRevMap: Record<
     number,
-    { name: string; revenue: number }
+    { id: number; name: string; revenue: number }
   > = {};
   for (const order of orders) {
     for (const item of order.items) {
@@ -204,13 +206,14 @@ export async function GET(req: NextRequest) {
         const locName = catNames.find((n) => n.locale === locale);
         const thName = catNames.find((n) => n.locale === s.canonicalLocale);
         // categoryId is null only when the menu item itself was deleted (SetNull
-        // nulls menuItemId, so the category relation is gone too).
+        // nulls menuItemId, so the category relation is gone too) → bucketed under
+        // id 0 (the single "deleted category" row).
         const name =
           locName?.name ||
           thName?.name ||
           catNames[0]?.name ||
           t("deletedCategory");
-        categoryRevMap[catId] = { name, revenue: 0 };
+        categoryRevMap[catId] = { id: catId, name, revenue: 0 };
       }
       // Option-adjustment-inclusive, matching the per-item revenue above.
       categoryRevMap[catId].revenue += lineRevenue(item);
@@ -221,9 +224,12 @@ export async function GET(req: NextRequest) {
     (sum, c) => sum + c.revenue,
     0
   );
+  // `id` is the stable category id (0 = deleted) — the UI keys on it, not `name`,
+  // because two distinct categories can legitimately share a display name.
   const revenueByCategory = Object.values(categoryRevMap)
     .sort((a, b) => b.revenue - a.revenue)
     .map((c) => ({
+      id: c.id,
       name: c.name,
       revenue: Math.round(c.revenue * 100) / 100,
       percentage:
@@ -284,6 +290,11 @@ export async function GET(req: NextRequest) {
   // Day-of-week profile (which DAYS make money) — orders/items/revenue per
   // weekday + busiest/quietest day. Complements the clock profile (which hours).
   const weekProfile = dayOfWeekProfile(orders, s.timezone);
+
+  // Dine-in vs takeaway channel split (orders, revenue, and each channel's share
+  // of the totals). Revenue uses lineRevenue summed over items — same basis as
+  // every other figure here — so it can't drift from the per-item/category totals.
+  const channels = channelBreakdown(orders);
 
   // Frequently-ordered-together pairs (selling point: item combinations). Keys
   // mirror the itemQuantities bucketing — menuItemId, or a per-snapshot key for
@@ -397,6 +408,8 @@ export async function GET(req: NextRequest) {
       quietestWeekday: weekProfile.quietestWeekday,
       // Frequently-ordered-together (selling point: item combinations).
       topPairs,
+      // Dine-in vs takeaway split (orders/revenue + each channel's share).
+      channels,
       // Slow/dead available items (the cut decision) + the zero-seller headline.
       deadItems,
       zeroSellerCount,

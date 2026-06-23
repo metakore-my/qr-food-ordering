@@ -97,6 +97,8 @@ export default async function DashboardPage({
     id: order.id,
     sessionId: order.sessionId,
     status: order.status as "PENDING" | "CONFIRMED",
+    orderType: order.orderType,
+    customerName: order.customerName,
     totalAmount: Number(order.totalAmount),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),

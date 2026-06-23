@@ -69,6 +69,7 @@ export default async function SettingsPage({
             brandTheme: settings.brandTheme,
             brandColor: settings.brandColor,
             logoUrl: settings.logoUrl,
+            takeawayEnabled: settings.takeawayEnabled,
           }}
           setupComplete={setupComplete}
         />

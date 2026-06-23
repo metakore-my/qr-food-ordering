@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
       id: true,
       sessionId: true,
       status: true,
+      orderType: true,
       totalAmount: true,
       createdAt: true,
       items: {
@@ -76,7 +77,8 @@ export async function GET(req: NextRequest) {
   const result = orders.map((order) => ({
     id: order.id,
     sessionId: order.sessionId,
-    tableNumber: order.session.table.number,
+    tableNumber: order.session.table?.number ?? null,
+    orderType: order.orderType,
     status: order.status,
     totalAmount: Number(order.totalAmount),
     createdAt: formatDeploymentDateTime(order.createdAt, s.timezone),

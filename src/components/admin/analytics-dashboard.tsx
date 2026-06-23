@@ -31,7 +31,7 @@ export interface ReportData {
   topItems: { name: string; quantity: number; revenue: number; revenueShare: number }[];
   // Pareto headline: top N dishes = X% of sales.
   pareto: { topCount: number; totalItemsWithSales: number; sharePercent: number } | null;
-  revenueByCategory: { name: string; revenue: number; percentage: number }[];
+  revenueByCategory: { id: number; name: string; revenue: number; percentage: number }[];
   ordersByHour: { hour: string; count: number }[];
   // 24h clock profile (all days summed onto a 0–23 axis), each bucket carrying
   // orders/items/revenue so the chart can toggle the metric.
@@ -53,6 +53,13 @@ export interface ReportData {
     attachRate: number;
     lift: number;
   }[];
+  // Dine-in vs takeaway channel split (orders/revenue + each channel's share).
+  channels: {
+    dineIn: { orders: number; revenue: number; orderShare: number; revenueShare: number };
+    takeaway: { orders: number; revenue: number; orderShare: number; revenueShare: number };
+    totalOrders: number;
+    totalRevenue: number;
+  };
   // Slow/dead available items (the cut decision) + the zero-seller headline.
   deadItems: { name: string; quantity: number }[];
   zeroSellerCount: number;
@@ -92,7 +99,7 @@ function DeltaBadge({ delta }: { delta: number | null }) {
 function CategoryBars({
   data,
 }: {
-  data: { name: string; revenue: number; percentage: number }[];
+  data: { id: number; name: string; revenue: number; percentage: number }[];
 }) {
   const cfg = useConfig();
   const money = (amount: number) =>
@@ -102,7 +109,7 @@ function CategoryBars({
   return (
     <div className="space-y-2.5">
       {data.map((cat) => (
-        <div key={cat.name} className="flex items-center gap-3">
+        <div key={cat.id} className="flex items-center gap-3">
           <span className="w-28 shrink-0 truncate text-sm text-gray-700 sm:w-36">
             {cat.name}
           </span>
@@ -736,6 +743,75 @@ export function AnalyticsDashboard({ data }: { data: ReportData }) {
           </ul>
         )}
       </div>
+
+      {/* Dine-in vs Takeaway — order/revenue split by channel, with each
+          channel's share of the totals. Only shown when there are orders. */}
+      {data.channels.totalOrders > 0 && (
+        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 px-4 py-4 sm:px-6">
+            <h3 className="text-lg font-semibold text-gray-900">{t("channelTitle")}</h3>
+          </div>
+          {/* overflow-x-auto so the 4-column table scrolls WITHIN the card on a
+              narrow (≤320px) viewport instead of widening the page (mobile-first). */}
+          <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 sm:px-6">
+                  &nbsp;
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 sm:px-6">
+                  {t("channelOrders")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 sm:px-6">
+                  {t("channelRevenue")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 sm:px-6">
+                  {t("channelShare")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(
+                [
+                  { label: t("channelDineIn"), stat: data.channels.dineIn },
+                  { label: t("channelTakeaway"), stat: data.channels.takeaway },
+                ] as const
+              ).map((row) => (
+                <tr key={row.label}>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 sm:px-6">
+                    {row.label}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900 sm:px-6">
+                    {row.stat.orders}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900 sm:px-6">
+                    {money(row.stat.revenue)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-500 sm:px-6">
+                    {row.stat.orderShare}% / {row.stat.revenueShare}%
+                  </td>
+                </tr>
+              ))}
+              <tr className="bg-gray-50 font-semibold">
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900 sm:px-6">
+                  {t("channelTotal")}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900 sm:px-6">
+                  {data.channels.totalOrders}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900 sm:px-6">
+                  {money(data.channels.totalRevenue)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-500 sm:px-6">
+                  100% / 100%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      )}
 
       {/* Slow / Dead Items — the cut decision. Available menu items selling the
           least (zero-sellers flagged). Only shown when there are items. */}

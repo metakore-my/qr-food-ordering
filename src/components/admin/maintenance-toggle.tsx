@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 interface MaintenanceToggleProps {
@@ -10,6 +11,7 @@ interface MaintenanceToggleProps {
 export function MaintenanceToggle({ initialEnabled }: MaintenanceToggleProps) {
   const t = useTranslations("maintenance");
   const tCommon = useTranslations("common");
+  const router = useRouter();
 
   const [enabled, setEnabled] = useState(initialEnabled);
   const [showModal, setShowModal] = useState(false);
@@ -43,6 +45,11 @@ export function MaintenanceToggle({ initialEnabled }: MaintenanceToggleProps) {
       setEnabled(!enabled);
       setShowModal(false);
       setPassword("");
+      // The maintenance banner is rendered SERVER-SIDE in the admin layout from
+      // isMaintenanceMode(). The POST route already busted the maintenance cache,
+      // so refresh re-renders the layout and the amber banner appears/disappears
+      // immediately — no hard reload. (Settings config reflects the same way.)
+      router.refresh();
     } catch {
       setError(tCommon("errorGeneric"));
     } finally {

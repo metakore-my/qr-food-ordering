@@ -35,6 +35,8 @@ export interface PlaceOrderArgs {
   lines: ResolvedOrderLine[];
   expectedTotal?: number;
   settings: ResolvedSettings;
+  orderType?: "DINE_IN" | "TAKEAWAY";
+  customerName?: string | null;
 }
 
 /**
@@ -53,7 +55,7 @@ export interface PlaceOrderArgs {
 // NOTE: return shape must stay compatible with serializeOrder in api/orders/route.ts
 export async function placeOrder(
   tx: Prisma.TransactionClient,
-  { session, lines, expectedTotal, settings: s }: PlaceOrderArgs
+  { session, lines, expectedTotal, settings: s, orderType = "DINE_IN", customerName = null }: PlaceOrderArgs
 ) {
   let hasDeadOptionRef = false;
 
@@ -127,6 +129,8 @@ export async function placeOrder(
   const newOrder = await tx.order.create({
     data: {
       sessionId: session.id,
+      orderType,
+      customerName: customerName?.trim() || null,
       totalAmount,
       items: { create: orderItemsData },
     },

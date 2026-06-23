@@ -27,6 +27,7 @@ export default async function CheckoutPage({
   setRequestLocale(locale);
   const t = await getTranslations("checkout");
   const tCustomer = await getTranslations("customer");
+  const tOrder = await getTranslations("order");
 
   // 1. Read session_id from cookie
   const cookieStore = await cookies();
@@ -125,8 +126,13 @@ export default async function CheckoutPage({
     };
   });
 
-  // 5. Generate signed table token for checkout QR (scanner expects this format)
-  const signedTableToken = signTableToken(session.table.id, session.table.token);
+  // 5. Generate signed table token for checkout QR (scanner expects this format).
+  // Only a table-bound (dine-in) session has a table to sign; a takeaway session
+  // has none, so there's no checkout QR. This page is dine-in-only in practice —
+  // the guard satisfies TS and is defensive.
+  const signedTableToken = session.table
+    ? signTableToken(session.table.id, session.table.token)
+    : null;
 
   // 6. Pass data to client components
   return (
@@ -155,7 +161,7 @@ export default async function CheckoutPage({
             </Link>
             <div className="min-w-0">
               <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">{t("title")}</h1>
-              <p className="truncate text-sm text-gray-500">{t("tableNumber", { number: session.table.number })}</p>
+              <p className="truncate text-sm text-gray-500">{session.table ? t("tableNumber", { number: session.table.number }) : tOrder("takeawayLabel")}</p>
             </div>
           </div>
           <LocaleSwitcher />
@@ -164,10 +170,12 @@ export default async function CheckoutPage({
 
       {/* Content */}
       <div className="mx-auto max-w-2xl px-4 py-6">
-        {/* QR Code section */}
-        <div className="mb-6">
-          <CheckoutQr tableToken={signedTableToken} />
-        </div>
+        {/* QR Code section — only for a dine-in (table-bound) session. */}
+        {signedTableToken != null && (
+          <div className="mb-6">
+            <CheckoutQr tableToken={signedTableToken} />
+          </div>
+        )}
 
         {/* Order summary section */}
         <OrderSummary

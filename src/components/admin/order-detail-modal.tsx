@@ -53,11 +53,23 @@ export function OrderDetailModal({
   const tCart = useTranslations("cart");
   const tCommon = useTranslations("common");
   const tCheckout = useTranslations("admin.checkoutScanner");
+  const tDash = useTranslations("admin.dashboard");
   const locale = useLocale();
   const cfg = useConfig();
   const confirm = useConfirm();
   const money = (amount: number) =>
     formatMoneyWith(amount, { currency: cfg.currency, decimals: cfg.decimals, locale: cfg.defaultLocale });
+
+  // Table-aware header label: "Table N" for dine-in, else a takeaway label
+  // (customer name, else order id). A table-less takeaway session has a null
+  // tableNumber, so the deref must be guarded.
+  const groupLabel =
+    group.tableNumber != null
+      ? t("tableNumber", { number: group.tableNumber })
+      : group.customerName
+        ? tDash("takeawayNamed", { name: group.customerName })
+        : tDash("takeawayUnnamed", { id: group.orders[0]?.id ?? 0 });
+  const groupIsTakeaway = group.orders.some((o) => o.orderType === "TAKEAWAY");
 
   const [loadingOrderId, setLoadingOrderId] = useState<number | null>(null);
   const [decliningOrderId, setDecliningOrderId] = useState<number | null>(null);
@@ -280,10 +292,12 @@ export function OrderDetailModal({
             </svg>
           </div>
           <p className="text-lg font-semibold text-gray-900">
-            {tCheckout("checkoutSuccess", {
-              table: group.tableNumber,
-              total: money(group.totalAmount),
-            })}
+            {group.tableNumber != null
+              ? tCheckout("checkoutSuccess", {
+                  table: group.tableNumber,
+                  total: money(group.totalAmount),
+                })
+              : `${groupLabel} — ${tCheckout("grandTotal")}: ${money(group.totalAmount)}`}
           </p>
           <button
             type="button"
@@ -314,8 +328,13 @@ export function OrderDetailModal({
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 sm:px-6">
           <div>
             <span id="order-detail-title" className="rounded-md bg-primary-500/10 px-2 py-1 text-sm font-bold text-primary-500">
-              {t("tableNumber", { number: group.tableNumber })}
+              {groupLabel}
             </span>
+            {groupIsTakeaway && (
+              <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                {tDash("takeawayBadge")}
+              </span>
+            )}
             <span className="ml-3 text-sm text-gray-500">
               {tCheckout("sessionId")}: {group.sessionId.slice(0, 8)}...
             </span>

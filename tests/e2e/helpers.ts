@@ -4,7 +4,7 @@ import { type Page, expect } from "@playwright/test";
 // the Origin (or Referer) host to match the request host. Playwright's
 // `request.post` sends no Origin by default, so every helper POST must set one
 // matching the config `baseURL`.
-const API_HEADERS = { Origin: "http://localhost:3000" };
+export const API_HEADERS = { Origin: "http://localhost:3000" };
 
 /**
  * Logs in as an admin user via the UI.
@@ -109,14 +109,16 @@ export async function createMenuItemViaAPI(
     categoryId,
     price,
     translations,
+    isFeatured,
   }: {
     categoryId: number;
     price: number;
     translations: Record<string, { name: string; description?: string }>;
+    isFeatured?: boolean;
   }
 ): Promise<{ id: number; categoryId: number; price: number }> {
   const response = await page.request.post("/api/menu", {
-    data: { categoryId, price, translations },
+    data: { categoryId, price, translations, ...(isFeatured ? { isFeatured: true } : {}) },
     headers: API_HEADERS,
   });
 

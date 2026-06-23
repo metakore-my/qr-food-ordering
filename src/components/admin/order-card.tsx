@@ -34,6 +34,8 @@ export interface OrderData {
   id: number;
   sessionId: string;
   status: "PENDING" | "CONFIRMED" | "DECLINED";
+  orderType: "DINE_IN" | "TAKEAWAY";
+  customerName: string | null;
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
@@ -56,12 +58,9 @@ export interface OrderData {
   }>;
   session: {
     id: string;
-    tableId: number;
+    tableId: number | null;
     status: string;
-    table: {
-      id: number;
-      number: number;
-    };
+    table: { id: number; number: number } | null;
   };
 }
 
@@ -75,6 +74,7 @@ interface OrderCardProps {
 export function OrderCard({ order, sessionOrderNumber, onStatusChange, hideTableBadge }: OrderCardProps) {
   const t = useTranslations("order");
   const tCart = useTranslations("cart");
+  const tDash = useTranslations("admin.dashboard");
   const locale = useLocale();
   const cfg = useConfig();
   const money = (amount: number) =>
@@ -156,13 +156,24 @@ export function OrderCard({ order, sessionOrderNumber, onStatusChange, hideTable
     <div
       className={`rounded-lg border border-gray-200 border-l-4 ${statusColors[order.status] || "border-l-gray-300"} bg-white p-4 shadow-sm transition-shadow hover:shadow-md`}
     >
-      {/* Header: Table name and time */}
+      {/* Header: Table / takeaway label, takeaway badge, and time */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-1">
-        {!hideTableBadge && (
-          <span className="rounded-md bg-primary-500/10 px-2 py-1 text-sm font-bold text-primary-500">
-            {t("tableNumber", { number: order.session.table.number })}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {!hideTableBadge && (
+            <span className="rounded-md bg-primary-500/10 px-2 py-1 text-sm font-bold text-primary-500">
+              {order.session.table
+                ? t("tableNumber", { number: order.session.table.number })
+                : order.customerName
+                  ? tDash("takeawayNamed", { name: order.customerName })
+                  : tDash("takeawayUnnamed", { id: order.id })}
+            </span>
+          )}
+          {order.orderType === "TAKEAWAY" && (
+            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+              {tDash("takeawayBadge")}
+            </span>
+          )}
+        </div>
         <span className={`text-xs text-gray-600 ${hideTableBadge ? "ml-auto" : ""}`}>
           {getRelativeTime(order.createdAt)}
         </span>

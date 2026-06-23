@@ -10,6 +10,7 @@ export interface PublicConfig {
   canonicalLocale: string;
   enabledLocales: string[];
   logoUrl: string | null;
+  takeawayEnabled: boolean;
   capabilities: Capabilities;
 }
 

@@ -115,6 +115,7 @@
     "minutesAgo": "{minutes} min ago",
     "hoursAgo": "{hours}h ago",
     "tableNumber": "Table {number}",
+    "takeawayLabel": "Takeaway",
     "editFailed": "Failed to update order",
     "confirmAllPartial": "{failed} of {total} orders could not be confirmed. Please try again.",
     "confirmRemoveItem": "Are you sure you want to remove \"{name}\" from this order?",
@@ -231,7 +232,6 @@
       "subtitle": "Manage your restaurant name, currency, languages, and branding.",
       "tabGeneral": "General",
       "tabBranding": "Branding",
-      "tabNotifications": "Notifications",
       "appName": "Restaurant name",
       "appNameFor": "Restaurant name in {language} (optional)",
       "appNameForPlaceholder": "Leave blank to use the main-language name",
@@ -295,7 +295,9 @@
         "restoreEmptyName": "The backup has an item with no name at all. The file looks corrupted.",
         "restoreTooLarge": "That backup file is too large to restore (over 10 MB). It may be corrupted.",
         "restoreError": "Restore failed. Your menu was not changed."
-      }
+      },
+      "takeawayEnabled": "Enable takeaway orders",
+      "takeawayEnabledHint": "Let staff place orders for pickup, with no table. Off by default."
     },
     "dashboard": {
       "title": "Order Dashboard",
@@ -308,7 +310,12 @@
       "tapToEnableSound": "Tap to enable order sound",
       "soundArmed": "Sound on",
       "botProtectionDisabled": "Bot protection (CAPTCHA) is not configured for this deployment. Admin login works with rate limiting and password checks only.",
-      "noAccess": "You don't have access to any sections yet. Ask a superadmin to grant you permissions."
+      "noAccess": "You don't have access to any sections yet. Ask a superadmin to grant you permissions.",
+      "takeawayBadge": "Takeaway",
+      "takeawayNamed": "Takeaway · {name}",
+      "takeawayUnnamed": "Takeaway #{id}",
+      "markCollected": "Mark collected",
+      "confirmCollect": "Mark this takeaway as collected and paid?"
     },
     "tables": {
       "title": "Table Management",
@@ -359,8 +366,8 @@
       "listView": "List view",
       "sortBy": "Sort by",
       "sortDefault": "Default order",
-      "sortNameAZ": "Name A\u2013Z",
-      "sortNameZA": "Name Z\u2013A",
+      "sortNameAZ": "Name A–Z",
+      "sortNameZA": "Name Z–A",
       "sortPriceLow": "Price: Low to High",
       "sortPriceHigh": "Price: High to Low",
       "sortAvailableFirst": "Available first",
@@ -475,7 +482,7 @@
       "imageUploadUnavailable": "Image upload is currently unavailable. Contact your system provider to enable it.",
       "itemName": "Name ({locale})",
       "itemNamePlaceholder": "Item name in {locale}",
-      "itemDescription": "Description ({locale}) \u2014 optional",
+      "itemDescription": "Description ({locale}) — optional",
       "itemDescriptionPlaceholder": "Description in {locale}",
       "invalidPrice": "Please enter a valid price",
       "translationRequired": "At least one translation with a name is required",
@@ -657,7 +664,17 @@
         "subtotal": "Subtotal ({currencyCode})",
         "truncatedWarning": "TRUNCATED",
         "truncatedDetail": "Showing {shown} of {total} orders — narrow the date range for the complete record."
-      }
+      },
+      "orderType": "Order type",
+      "orderTypeDineIn": "Dine-in",
+      "orderTypeTakeaway": "Takeaway",
+      "channelTitle": "Dine-in vs Takeaway",
+      "channelDineIn": "Dine-in",
+      "channelTakeaway": "Takeaway",
+      "channelOrders": "Orders",
+      "channelRevenue": "Revenue",
+      "channelShare": "Share",
+      "channelTotal": "Total"
     },
     "orderEntry": {
       "title": "Place Order",
@@ -679,6 +696,7 @@
       "selectTableFirst": "Choose a table to place the order.",
       "placedTitle": "Order placed",
       "placedBody": "Order for Table {number} sent to the kitchen.",
+      "placedTakeawayBody": "Takeaway order sent to the kitchen.",
       "placeAnother": "Place another",
       "errors": {
         "TABLE_NOT_FOUND": "That table number isn't active. Check the number and try again.",
@@ -689,7 +707,14 @@
         "SESSION_INACTIVE": "That table's session just closed. Start the order again.",
         "ORDER_IN_PROGRESS": "That order is already being placed. Please wait.",
         "SERVER_ERROR": "Something went wrong placing the order. Please try again."
-      }
+      },
+      "orderTypeLabel": "Order type",
+      "dineIn": "Dine-in",
+      "takeaway": "Takeaway",
+      "customerNameLabel": "Customer name",
+      "customerNamePlaceholder": "Customer name (optional)",
+      "featured": "Featured",
+      "categoryTabsLabel": "Browse by category"
     },
     "checkoutScanner": {
       "title": "Checkout Scanner",
@@ -703,7 +728,7 @@
       "grandTotal": "Grand Total",
       "confirmCheckout": "Confirm Checkout",
       "processing": "Processing...",
-      "checkoutSuccess": "Checkout complete! Table {table} \u2014 Total: {total}",
+      "checkoutSuccess": "Checkout complete! Table {table} — Total: {total}",
       "closeTable": "Close Table",
       "confirmCloseTable": "Close this table without checking out? {count, plural, =0 {The session will end and the table will be freed.} one {1 unpaid order will be cancelled, the session will end, and the table will be freed.} other {# unpaid orders will be cancelled, the session will end, and the table will be freed.}}",
       "closeTableSuccess": "Table {table} closed.",
@@ -725,7 +750,12 @@
       "expandSidebar": "Expand sidebar",
       "collapseSidebar": "Collapse sidebar",
       "changePassword": "Change Password",
-      "loggedInAs": "Logged in as {username}"
+      "loggedInAs": "Logged in as {username}",
+      "fontSize": "Text size",
+      "fontSizeSmall": "Small",
+      "fontSizeMedium": "Medium",
+      "fontSizeLarge": "Large",
+      "notificationSettings": "Notification settings"
     },
     "changePassword": {
       "title": "Change Password",
@@ -783,7 +813,7 @@
     "passwordRequired": "Enter your password to confirm",
     "enabled": "Maintenance mode enabled",
     "disabled": "Maintenance mode disabled",
-    "banner": "Maintenance mode is ON \u2014 customers cannot access the system",
+    "banner": "Maintenance mode is ON — customers cannot access the system",
     "incorrectPassword": "Incorrect password"
   },
   "locales": {

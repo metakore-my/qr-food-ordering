@@ -68,3 +68,24 @@ describe("resolveSettings (DB → default; no env tier for config)", () => {
     expect(SETTING_KEYS).toContain("brand_theme");
   });
 });
+
+describe("takeaway_enabled", () => {
+  it("resolves takeawayEnabled=false by default", () => {
+    expect(resolveSettings({}).takeawayEnabled).toBe(false);
+  });
+  it("resolves takeawayEnabled=true when the row is 'true'", () => {
+    expect(resolveSettings({ takeaway_enabled: "true" }).takeawayEnabled).toBe(true);
+  });
+  it("resolves takeawayEnabled=false for any non-'true' value", () => {
+    expect(resolveSettings({ takeaway_enabled: "false" }).takeawayEnabled).toBe(false);
+    expect(resolveSettings({ takeaway_enabled: "yes" }).takeawayEnabled).toBe(false);
+  });
+  it("validateSettingsInput rejects a non-boolean takeaway_enabled", () => {
+    const r = validateSettingsInput({ takeaway_enabled: "yes" }, resolveSettings({}), { setupComplete: true });
+    expect(r.ok).toBe(false);
+  });
+  it("validateSettingsInput accepts 'true'/'false' (even after setup — not locked)", () => {
+    expect(validateSettingsInput({ takeaway_enabled: "true" }, resolveSettings({}), { setupComplete: true }).ok).toBe(true);
+    expect(validateSettingsInput({ takeaway_enabled: "false" }, resolveSettings({}), { setupComplete: true }).ok).toBe(true);
+  });
+});

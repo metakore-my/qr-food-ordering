@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { signOut } from "next-auth/react";
@@ -9,6 +9,12 @@ import { ChangePasswordModal } from "@/components/admin/change-password-modal";
 import { useSidebar } from "@/components/layout/admin-layout-client";
 import { useConfig } from "@/components/providers/config-provider";
 import { APP_VERSION } from "@/lib/version";
+import {
+  adminFontPrefsStore,
+  ADMIN_FONT_SIZES,
+  type AdminFontSize,
+} from "@/lib/admin-font-prefs";
+import { NotificationSettingsModal } from "@/components/admin/notification-settings-modal";
 
 interface AdminSidebarProps {
   role: string;
@@ -200,6 +206,7 @@ export function AdminSidebar({ role, permissions, username }: AdminSidebarProps)
   const [collapsedByModal, setCollapsedByModal] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
   // On tablet (md–lg), auto-collapse sidebar when any modal opens
   const isTablet = useCallback(() => {
@@ -366,6 +373,43 @@ export function AdminSidebar({ role, permissions, username }: AdminSidebarProps)
             </svg>
             {!collapsed && <span>{t("logout")}</span>}
           </button>
+          {!collapsed && (
+            <>
+              <FontSizeToggle
+                label={tSidebar("fontSize")}
+                sizeLabel={(id) =>
+                  tSidebar(
+                    id === "small"
+                      ? "fontSizeSmall"
+                      : id === "large"
+                      ? "fontSizeLarge"
+                      : "fontSizeMedium",
+                  )
+                }
+              />
+              <button
+                type="button"
+                onClick={() => setShowNotificationSettings(true)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 flex-shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                  />
+                </svg>
+                <span>{tSidebar("notificationSettings")}</span>
+              </button>
+            </>
+          )}
           {/* App version — single source of truth is package.json (see lib/version.ts) */}
           <p className="px-3 pt-1 text-center text-[11px] text-gray-400" title={`v${APP_VERSION}`}>
             v{APP_VERSION}
@@ -453,6 +497,46 @@ export function AdminSidebar({ role, permissions, username }: AdminSidebarProps)
                 </svg>
                 <span>{t("logout")}</span>
               </button>
+              {/* Font size (per-device) */}
+              <div className="border-t border-gray-100">
+                <FontSizeToggle
+                  label={tSidebar("fontSize")}
+                  sizeLabel={(id) =>
+                    tSidebar(
+                      id === "small"
+                        ? "fontSizeSmall"
+                        : id === "large"
+                        ? "fontSizeLarge"
+                        : "fontSizeMedium",
+                    )
+                  }
+                />
+              </div>
+              {/* Notification settings (per-device) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMoreMenu(false);
+                  setShowNotificationSettings(true);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                  />
+                </svg>
+                <span>{tSidebar("notificationSettings")}</span>
+              </button>
               {/* App version (mobile) — mirrors the desktop sidebar badge, which
                   lives in the hidden-on-mobile aside. Source: package.json. */}
               <p className="border-t border-gray-100 px-4 pt-2 text-center text-[11px] text-gray-400">
@@ -512,6 +596,67 @@ export function AdminSidebar({ role, permissions, username }: AdminSidebarProps)
         onClose={() => setShowChangePassword(false)}
         username={username}
       />
+      <NotificationSettingsModal
+        open={showNotificationSettings}
+        onClose={() => setShowNotificationSettings(false)}
+      />
     </>
+  );
+}
+
+/**
+ * Per-device admin font-size toggle (S / M / L). Reads/writes the
+ * localStorage-backed `adminFontPrefsStore`; the change applies instantly via
+ * `AdminFontScale`. Shown in the sidebar so EVERY admin can size their own
+ * device (the SUPERADMIN-only Settings page would hide it from most staff).
+ * The visible glyph is a growing "A"; `sizeLabel` supplies each segment's
+ * localized accessible name (e.g. "Small"/"Medium"/"Large").
+ */
+function FontSizeToggle({
+  label,
+  sizeLabel,
+}: {
+  label: string;
+  sizeLabel: (id: AdminFontSize) => string;
+}) {
+  const prefs = useSyncExternalStore(
+    adminFontPrefsStore.subscribe,
+    adminFontPrefsStore.read,
+    adminFontPrefsStore.getServerSnapshot,
+  );
+
+  return (
+    <div className="px-3 py-2">
+      <p className="mb-1.5 text-xs font-medium text-gray-500">{label}</p>
+      <div role="group" aria-label={label} className="flex gap-1">
+        {ADMIN_FONT_SIZES.map((s) => {
+          const selected = prefs.size === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              aria-pressed={selected}
+              aria-label={sizeLabel(s.id)}
+              title={sizeLabel(s.id)}
+              onClick={() => adminFontPrefsStore.write({ size: s.id })}
+              className={`flex min-h-[44px] flex-1 items-center justify-center rounded-md border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                selected
+                  ? "border-primary-500 bg-primary-50 text-primary-700"
+                  : "border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              {/* Glyph size telegraphs the option: a fixed, widely-spaced ramp
+                  (12/15/19px) so the three states read as clearly distinct. */}
+              <span
+                aria-hidden="true"
+                style={{ fontSize: `${s.id === "small" ? 12 : s.id === "large" ? 19 : 15}px` }}
+              >
+                A
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

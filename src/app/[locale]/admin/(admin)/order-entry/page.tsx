@@ -32,16 +32,23 @@ export default async function OrderEntryPage({ params }: { params: Promise<{ loc
   const localeFilter = locale === settings.canonicalLocale ? [settings.canonicalLocale] : [locale, settings.canonicalLocale];
   const nameFilter = { where: { locale: { in: localeFilter } } };
 
-  const itemsRaw = await prisma.menuItem.findMany({
-    where: { isAvailable: true },
+  const categoriesRaw = await prisma.category.findMany({
+    where: { isActive: true },
     orderBy: { sortOrder: "asc" },
     include: {
       names: nameFilter,
-      optionGroups: {
+      items: {
+        where: { isAvailable: true },
         orderBy: { sortOrder: "asc" },
         include: {
           names: nameFilter,
-          choices: { orderBy: { sortOrder: "asc" }, include: { names: nameFilter } },
+          optionGroups: {
+            orderBy: { sortOrder: "asc" },
+            include: {
+              names: nameFilter,
+              choices: { orderBy: { sortOrder: "asc" }, include: { names: nameFilter } },
+            },
+          },
         },
       },
     },
@@ -55,7 +62,7 @@ export default async function OrderEntryPage({ params }: { params: Promise<{ loc
     return { name: names[0]?.name ?? `#${id}`, description: names[0]?.description ?? undefined };
   }
 
-  const items = itemsRaw.map((it) => {
+  function mapItem(it: (typeof categoriesRaw)[number]["items"][number]) {
     const { name, description } = resolveName(it.names, it.id);
     return {
       id: it.id,
@@ -65,6 +72,7 @@ export default async function OrderEntryPage({ params }: { params: Promise<{ loc
       imageUrl: it.imageUrl ?? undefined,
       isAvailable: it.isAvailable,
       isCombo: it.isCombo,
+      isFeatured: it.isFeatured,
       comboBasePrice: it.comboBasePrice != null ? Number(it.comboBasePrice) : null,
       optionGroups: it.optionGroups.map((g) => ({
         id: g.id,
@@ -80,7 +88,16 @@ export default async function OrderEntryPage({ params }: { params: Promise<{ loc
         })),
       })),
     };
-  });
+  }
+
+  // Drop categories that have no available items — they would render as dead chips.
+  const categories = categoriesRaw
+    .map((cat) => ({
+      id: cat.id,
+      name: resolveName(cat.names, cat.id).name,
+      items: cat.items.map(mapItem),
+    }))
+    .filter((cat) => cat.items.length > 0);
 
   const activeTables = await prisma.table.findMany({
     where: { isActive: true },
@@ -94,7 +111,7 @@ export default async function OrderEntryPage({ params }: { params: Promise<{ loc
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
       </div>
-      <OrderEntry locale={locale} items={items} activeTables={activeTables} />
+      <OrderEntry locale={locale} categories={categories} activeTables={activeTables} />
     </main>
   );
 }

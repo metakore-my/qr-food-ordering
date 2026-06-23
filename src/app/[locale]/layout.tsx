@@ -45,6 +45,7 @@ export default async function LocaleLayout({
     canonicalLocale: settings.canonicalLocale,
     enabledLocales: settings.enabledLocales,
     logoUrl: settings.logoUrl,
+    takeawayEnabled: settings.takeawayEnabled,
     capabilities,
   };
 
