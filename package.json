@@ -1,6 +1,6 @@
 {
   "name": "qr-food-ordering",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -33,6 +33,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-easy-crop": "^6.0.2",
     "tsx": "^4.21.0",
     "zod": "^4.3.6"
   },

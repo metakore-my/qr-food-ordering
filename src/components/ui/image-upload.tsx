@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useConfirm } from "@/components/providers/confirm-provider";
+import { ImageCropModal } from "@/components/ui/image-crop-modal";
 
 interface ImageUploadProps {
   value?: string;
@@ -35,42 +36,62 @@ export function ImageUpload({
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  // Object URL of a just-picked file awaiting crop; non-null = cropper open.
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  // R2 PUT progress 0–100 (null when not uploading).
+  const [progress, setProgress] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const validateFile = useCallback((file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return t("invalidFileType");
-    }
-    if (file.size > MAX_SIZE) {
-      return t("fileTooLarge");
-    }
-    return null;
-  }, [t]);
+  // Revoke a pending crop object URL if this control unmounts while the cropper
+  // is still open (the onConfirm/onCancel revokes only fire if the user finishes
+  // the crop). revokeObjectURL on an already-revoked URL is a harmless no-op, so
+  // this is safe alongside those inline revokes.
+  useEffect(() => {
+    return () => {
+      if (cropSrc) URL.revokeObjectURL(cropSrc);
+    };
+  }, [cropSrc]);
 
-  const uploadFile = useCallback(
-    async (file: File) => {
-      const validationError = validateFile(file);
-      if (validationError) {
-        setError(validationError);
+  // A picked/dropped file is TYPE-checked here, then opens the cropper; the
+  // cropper returns a processed WebP Blob to uploadBlob. (Size is validated on
+  // the processed blob, not the original — a large original is shrunk first.)
+  const openCropperFor = useCallback(
+    (file: File) => {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setError(t("invalidFileType"));
+        onError?.(true);
+        return;
+      }
+      setError(null);
+      setCropSrc(URL.createObjectURL(file));
+    },
+    [t, onError]
+  );
+
+  const uploadBlob = useCallback(
+    async (blob: Blob) => {
+      if (blob.size > MAX_SIZE) {
+        setError(t("fileTooLarge"));
         onError?.(true);
         return;
       }
 
       setError(null);
       setUploading(true);
+      setProgress(0);
 
       // Show local preview immediately
-      const localPreview = URL.createObjectURL(file);
+      const localPreview = URL.createObjectURL(blob);
       setPreview(localPreview);
 
       try {
-        // Request presigned URL
+        // Request presigned URL (always WebP — the cropper re-encodes to WebP)
         const presignedRes = await fetch("/api/upload/presigned-url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contentType: file.type,
-            fileSize: file.size,
+            contentType: "image/webp",
+            fileSize: blob.size,
           }),
         });
 
@@ -81,18 +102,24 @@ export function ImageUpload({
 
         const { uploadUrl, publicUrl } = await presignedRes.json();
 
-        // Upload directly to R2
-        const uploadRes = await fetch(uploadUrl, {
-          method: "PUT",
-          body: file,
-          headers: {
-            "Content-Type": file.type,
-          },
+        // Upload directly to R2 via XHR so we get real upload progress
+        // (fetch doesn't expose upload progress).
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", uploadUrl);
+          xhr.setRequestHeader("Content-Type", "image/webp");
+          xhr.upload.onprogress = (ev) => {
+            if (ev.lengthComputable) {
+              setProgress(Math.round((ev.loaded / ev.total) * 100));
+            }
+          };
+          xhr.onload = () =>
+            xhr.status >= 200 && xhr.status < 300
+              ? resolve()
+              : reject(new Error(t("failedToUpload")));
+          xhr.onerror = () => reject(new Error(t("failedToUpload")));
+          xhr.send(blob);
         });
-
-        if (!uploadRes.ok) {
-          throw new Error(t("failedToUpload"));
-        }
 
         onUpload(publicUrl);
         onError?.(false); // upload succeeded — clear any prior failure flag
@@ -104,22 +131,23 @@ export function ImageUpload({
         onError?.(true); // upload failed — tell the parent so it can block "Saved"
       } finally {
         setUploading(false);
+        setProgress(null);
         URL.revokeObjectURL(localPreview);
       }
     },
-    [validateFile, onUpload, onError, t]
+    [onUpload, onError, t]
   );
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        uploadFile(file);
+        openCropperFor(file);
       }
       // Reset input so the same file can be selected again
       e.target.value = "";
     },
-    [uploadFile]
+    [openCropperFor]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -142,11 +170,27 @@ export function ImageUpload({
 
       const file = e.dataTransfer.files?.[0];
       if (file) {
-        uploadFile(file);
+        openCropperFor(file);
       }
     },
-    [uploadFile]
+    [openCropperFor]
   );
+
+  // Stable handlers for the crop modal so its mount/unmount effect isn't re-run
+  // by unrelated ImageUpload re-renders (e.g. dragOver toggles) while it's open.
+  const handleCropConfirm = useCallback(
+    (blob: Blob) => {
+      if (cropSrc) URL.revokeObjectURL(cropSrc);
+      setCropSrc(null);
+      uploadBlob(blob);
+    },
+    [cropSrc, uploadBlob]
+  );
+
+  const handleCropCancel = useCallback(() => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  }, [cropSrc]);
 
   const handleRemove = useCallback(async () => {
     if (!(await confirm({ message: t("confirmRemoveImage") }))) return;
@@ -173,7 +217,7 @@ export function ImageUpload({
             className="h-48 w-full object-cover"
           />
           {uploading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
               <svg
                 className="h-8 w-8 animate-spin text-white"
                 xmlns="http://www.w3.org/2000/svg"
@@ -194,6 +238,9 @@ export function ImageUpload({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
+              {progress !== null && (
+                <span className="mt-2 text-sm font-medium text-white">{progress}%</span>
+              )}
             </div>
           )}
         </div>
@@ -290,6 +337,12 @@ export function ImageUpload({
         <p className="text-xs text-gray-400">
           {t("fileTypeHint")}
         </p>
+        {/* Guidance toward a crisp, correctly-framed photo: landscape 4:3 at
+            ~1200×900 stays sharp on a high-DPI phone and avoids the portrait
+            center-crop that hides the dish (the card box is landscape 4:3). */}
+        <p className="mt-1 text-center text-xs text-gray-400">
+          {t("dimensionHint")}
+        </p>
       </div>
       <input
         ref={inputRef}
@@ -301,6 +354,13 @@ export function ImageUpload({
       />
       {error && (
         <p className="mt-2 text-sm text-red-600">{error}</p>
+      )}
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
       )}
     </div>
   );

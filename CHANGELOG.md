@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-06-30
+
+### Added
+
+- Crop and auto-optimize menu photos when uploading: after choosing a photo you
+  frame the dish in a fixed shape (drag to move, slide to zoom), and the image is
+  shrunk automatically before upload — so uploads are faster on slow connections
+  and every menu photo comes out a consistent shape.
+- Customers can tap a menu photo to view it full screen.
+- Customers can download their full itemized order as an image after checkout —
+  the "Thank you" screen now has a "Download receipt" button that saves a receipt
+  (restaurant name, table or takeaway, date, every item with options and prices,
+  and the grand total) so diners can keep a record once the on-screen breakdown
+  is gone.
+
+### Changed
+
+- Larger menu photos on phones, on both the customer menu and the admin menu
+  list, so dishes are more prominent.
+- After the bill is settled, the checkout screen becomes a clean confirmation
+  page: the menu/cart navigation and the back button are hidden so customers stay
+  on the receipt (with the download button) instead of being bounced to a
+  "session expired" message.
+
 ## [1.0.3] - 2026-06-23
 
 ### Added
@@ -202,6 +226,7 @@ prior version to change, remove, or fix against.
 - Responsive layout verified across 320px–1440px (touch targets, iOS input zoom,
   safe-area insets, sticky elements).
 
+[1.0.4]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.4
 [1.0.3]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.3
 [1.0.2]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.2
 [1.0.1]: https://github.com/metakore-my/qr-food-ordering/releases/tag/v1.0.1

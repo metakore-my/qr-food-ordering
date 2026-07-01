@@ -66,7 +66,8 @@
     "fromPrice": "{price} 起",
     "combo": "套餐",
     "recommended": "推荐",
-    "priceAdjust": "+{price}"
+    "priceAdjust": "+{price}",
+    "enlargePhoto": "查看照片"
   },
   "cart": {
     "title": "你的购物车",
@@ -131,6 +132,9 @@
     "orderNumber": "订单 #{number}",
     "subtotal": "小计",
     "grandTotal": "总计",
+    "downloadReceipt": "下载收据",
+    "downloadingReceipt": "生成中…",
+    "downloadError": "无法生成收据图片，请重试。",
     "noOrders": "尚无订单",
     "backToMenu": "返回菜单",
     "tableNumber": "桌号 {number}"
@@ -786,6 +790,12 @@
     "uploading": "上传中...",
     "clickOrDrag": "点击或拖拽上传",
     "fileTypeHint": "JPEG、PNG 或 WebP（最大 5MB）",
+    "dimensionHint": "建议使用横向照片，约 1200×900px。您可以在下一步中调整构图以适配比例。",
+    "cropTitle": "调整照片位置",
+    "cropHint": "拖动可移动，滑动可缩放。框内区域即顾客看到的效果。",
+    "cropZoom": "缩放",
+    "cropConfirm": "使用此照片",
+    "cropProcessing": "处理中...",
     "uploadImage": "上传图片"
   },
   "metadata": {

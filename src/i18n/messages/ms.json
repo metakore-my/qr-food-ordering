@@ -66,7 +66,8 @@
     "fromPrice": "Dari {price}",
     "combo": "Set",
     "recommended": "Disyorkan",
-    "priceAdjust": "+{price}"
+    "priceAdjust": "+{price}",
+    "enlargePhoto": "Lihat foto"
   },
   "cart": {
     "title": "Troli Anda",
@@ -131,6 +132,9 @@
     "orderNumber": "Pesanan #{number}",
     "subtotal": "Subtotal",
     "grandTotal": "Jumlah Keseluruhan",
+    "downloadReceipt": "Muat turun resit",
+    "downloadingReceipt": "Menyediakan…",
+    "downloadError": "Tidak dapat menjana imej resit. Sila cuba lagi.",
     "noOrders": "Belum ada pesanan dibuat",
     "backToMenu": "Kembali ke Menu",
     "tableNumber": "Meja {number}"
@@ -786,6 +790,12 @@
     "uploading": "Memuat naik...",
     "clickOrDrag": "Klik atau seret untuk memuat naik",
     "fileTypeHint": "JPEG, PNG atau WebP (maks. 5MB)",
+    "dimensionHint": "Hasil terbaik: foto landskap, sekitar 1200×900px. Anda akan membingkai foto untuk disesuaikan pada langkah seterusnya.",
+    "cropTitle": "Tetapkan kedudukan foto anda",
+    "cropHint": "Seret untuk mengalih, gelungsur untuk zum. Kawasan dalam bingkai ialah yang akan dilihat oleh pelanggan.",
+    "cropZoom": "Zum",
+    "cropConfirm": "Guna foto ini",
+    "cropProcessing": "Memproses...",
     "uploadImage": "Muat naik imej"
   },
   "metadata": {

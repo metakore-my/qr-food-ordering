@@ -1,10 +1,11 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useConfig } from "@/components/providers/config-provider";
 import { formatMoneyWith } from "@/lib/money-client";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 
 interface MenuCardProps {
   item: {
@@ -43,6 +44,10 @@ export const MenuCard = memo(function MenuCard({
   // gray box. `hasImage` is the single gate used everywhere the URL was checked.
   const [imgError, setImgError] = useState(false);
   const hasImage = !!item.imageUrl && !imgError;
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  // Stable so the lightbox's mount/unmount effect isn't re-run by unrelated
+  // menu-card re-renders (cart poll, cart-updated events) while it's open.
+  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
 
   function handleDecrement() {
     setQuantity((prev) => Math.max(1, prev - 1));
@@ -120,7 +125,7 @@ export const MenuCard = memo(function MenuCard({
         </div>
       )}
       {hasImage && (
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+        <div className="relative aspect-[3/2] w-full overflow-hidden bg-gray-100 sm:aspect-[4/3]">
           <Image
             src={item.imageUrl!}
             alt={item.name}
@@ -129,6 +134,16 @@ export const MenuCard = memo(function MenuCard({
             className={`object-cover ${!item.isAvailable ? "grayscale" : ""}`}
             priority={priority}
             onError={() => setImgError(true)}
+          />
+          {/* Tap the photo to enlarge it. z-[5] sits above the image but below
+              the z-10 badges; the out-of-stock scrim below is non-interactive,
+              so the button still receives taps. The Add-to-cart controls live
+              outside this div and are unaffected. */}
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            aria-label={tMenu("enlargePhoto")}
+            className="absolute inset-0 z-[5] cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
           />
           {!item.isAvailable && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -169,6 +184,15 @@ export const MenuCard = memo(function MenuCard({
         </p>
         {quantityControls && <div className="mt-3">{quantityControls}</div>}
       </div>
+
+      {lightboxOpen && hasImage && (
+        <ImageLightbox
+          src={item.imageUrl!}
+          alt={item.name}
+          caption={`${item.name} · ${formattedPrice}`}
+          onClose={closeLightbox}
+        />
+      )}
     </div>
   );
 });

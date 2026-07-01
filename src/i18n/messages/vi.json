@@ -66,7 +66,8 @@
     "fromPrice": "Từ {price}",
     "combo": "Combo",
     "recommended": "Gợi ý",
-    "priceAdjust": "+{price}"
+    "priceAdjust": "+{price}",
+    "enlargePhoto": "Xem ảnh"
   },
   "cart": {
     "title": "Giỏ hàng của bạn",
@@ -131,6 +132,9 @@
     "orderNumber": "Đơn #{number}",
     "subtotal": "Tạm tính",
     "grandTotal": "Tổng thanh toán",
+    "downloadReceipt": "Tải hóa đơn",
+    "downloadingReceipt": "Đang xử lý…",
+    "downloadError": "Không thể tạo ảnh hóa đơn. Vui lòng thử lại.",
     "noOrders": "Chưa có đơn hàng nào",
     "backToMenu": "Quay lại thực đơn",
     "tableNumber": "Bàn {number}"
@@ -786,6 +790,12 @@
     "uploading": "Đang tải lên...",
     "clickOrDrag": "Nhấn hoặc kéo thả để tải lên",
     "fileTypeHint": "JPEG, PNG hoặc WebP (tối đa 5MB)",
+    "dimensionHint": "Tốt nhất: ảnh ngang, khoảng 1200×900px. Bạn sẽ điều chỉnh khung hình cho vừa ở bước tiếp theo.",
+    "cropTitle": "Chỉnh vị trí ảnh",
+    "cropHint": "Kéo để di chuyển, trượt để phóng to. Khung hiển thị là phần thực khách sẽ thấy.",
+    "cropZoom": "Thu phóng",
+    "cropConfirm": "Dùng ảnh này",
+    "cropProcessing": "Đang xử lý...",
     "uploadImage": "Tải ảnh lên"
   },
   "metadata": {

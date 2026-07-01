@@ -66,7 +66,8 @@
     "fromPrice": "From {price}",
     "combo": "Combo",
     "recommended": "Recommended",
-    "priceAdjust": "+{price}"
+    "priceAdjust": "+{price}",
+    "enlargePhoto": "View photo"
   },
   "cart": {
     "title": "Your Cart",
@@ -131,6 +132,9 @@
     "orderNumber": "Order #{number}",
     "subtotal": "Subtotal",
     "grandTotal": "Grand Total",
+    "downloadReceipt": "Download receipt",
+    "downloadingReceipt": "Preparing…",
+    "downloadError": "Couldn't create the receipt image. Please try again.",
     "noOrders": "No orders placed yet",
     "backToMenu": "Back to Menu",
     "tableNumber": "Table {number}"
@@ -786,6 +790,12 @@
     "uploading": "Uploading...",
     "clickOrDrag": "Click or drag to upload",
     "fileTypeHint": "JPEG, PNG, or WebP (max 5MB)",
+    "dimensionHint": "Best results: a landscape photo, around 1200×900px. You'll frame it to fit in the next step.",
+    "cropTitle": "Position your photo",
+    "cropHint": "Drag to move, slide to zoom. The framed area is what diners see.",
+    "cropZoom": "Zoom",
+    "cropConfirm": "Use this photo",
+    "cropProcessing": "Processing...",
     "uploadImage": "Upload image"
   },
   "metadata": {

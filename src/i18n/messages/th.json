@@ -66,7 +66,8 @@
     "fromPrice": "เริ่มต้น {price}",
     "combo": "คอมโบ",
     "recommended": "แนะนำ",
-    "priceAdjust": "+{price}"
+    "priceAdjust": "+{price}",
+    "enlargePhoto": "ดูรูปภาพ"
   },
   "cart": {
     "title": "ตะกร้าของคุณ",
@@ -131,6 +132,9 @@
     "orderNumber": "ออเดอร์ #{number}",
     "subtotal": "ยอดรวมย่อย",
     "grandTotal": "ยอดรวมทั้งหมด",
+    "downloadReceipt": "ดาวน์โหลดใบเสร็จ",
+    "downloadingReceipt": "กำลังเตรียม…",
+    "downloadError": "ไม่สามารถสร้างรูปใบเสร็จได้ กรุณาลองใหม่อีกครั้ง",
     "noOrders": "ยังไม่มีออเดอร์",
     "backToMenu": "กลับไปที่เมนู",
     "tableNumber": "โต๊ะ {number}"
@@ -786,6 +790,12 @@
     "uploading": "กำลังอัปโหลด...",
     "clickOrDrag": "คลิกหรือวางไฟล์เพื่ออัปโหลด",
     "fileTypeHint": "JPEG, PNG หรือ WebP (สูงสุด 5MB)",
+    "dimensionHint": "ผลลัพธ์ที่ดีที่สุด: ภาพแนวนอน ประมาณ 1200×900px คุณจะสามารถจัดกรอบภาพให้พอดีในขั้นตอนถัดไป",
+    "cropTitle": "จัดตำแหน่งรูปภาพ",
+    "cropHint": "ลากเพื่อเลื่อน เลื่อนสไลด์เพื่อซูม พื้นที่ในกรอบคือสิ่งที่ลูกค้าจะเห็น",
+    "cropZoom": "ซูม",
+    "cropConfirm": "ใช้รูปภาพนี้",
+    "cropProcessing": "กำลังประมวลผล...",
     "uploadImage": "อัปโหลดรูปภาพ"
   },
   "metadata": {

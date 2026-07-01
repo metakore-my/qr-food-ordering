@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { isMaintenanceMode } from "@/lib/maintenance";
+import { prisma } from "@/lib/prisma";
+import { isSessionExpired } from "@/lib/session";
 import { CustomerLayoutClient } from "@/components/layout/customer-layout-client";
 import { BackToTopButton } from "@/components/layout/back-to-top-button";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
@@ -48,16 +50,30 @@ export default async function CustomerLayout({
     );
   }
 
-  // Read session_id from cookie to determine if we should show nav
+  // Read session_id from cookie to determine if we should show nav.
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("session_id")?.value;
+
+  // The mobile nav (Menu / Cart / Checkout) is an ordering surface, so only show
+  // it while the session can still order — i.e. ACTIVE and not expired. A settled
+  // (CHECKED_OUT) or expired session is terminal: hiding the nav keeps the
+  // thank-you/receipt screen a dead end (Menu/Cart would only bounce to "Session
+  // Expired"). Mirrors the ACTIVE-only guard on the menu/cart pages.
+  let showNav = false;
+  if (sessionId) {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { status: true, updatedAt: true },
+    });
+    showNav = !!session && session.status === "ACTIVE" && !isSessionExpired(session.updatedAt);
+  }
 
   return (
     <div id="main-content" className="min-h-screen bg-gray-50">
       {children}
       <BackToTopButton />
-      {/* Only show mobile nav when there's an active session */}
-      {sessionId && (
+      {/* Only show mobile nav when the session can still order (ACTIVE, unexpired). */}
+      {sessionId && showNav && (
         <CustomerLayoutClient sessionId={sessionId} />
       )}
     </div>

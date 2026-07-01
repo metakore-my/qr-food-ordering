@@ -6,6 +6,8 @@ import { Link } from "@/i18n/navigation";
 import { useConfig } from "@/components/providers/config-provider";
 import { formatMoneyWith } from "@/lib/money-client";
 import { resolveOptionName, type LocalizedName } from "@/lib/option-utils";
+import { renderReceiptToPngBlob } from "@/lib/receipt-canvas";
+import type { ReceiptData, ReceiptOrder } from "@/lib/receipt-layout";
 
 interface OrderItemOptionSnapshot {
   groupName: LocalizedName;
@@ -58,6 +60,8 @@ interface OrderSummaryProps {
   sessionId: string;
   orders: OrderData[];
   locale: string;
+  /** "Table 5" or "Takeaway" — resolved server-side (client has no session.table). */
+  locationLabel: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -71,18 +75,90 @@ export function OrderSummary({
   sessionId,
   orders: initialOrders,
   locale,
+  locationLabel,
 }: OrderSummaryProps) {
   const t = useTranslations("checkout");
   const tOrder = useTranslations("order");
   const cfg = useConfig();
-  const money = (amount: number) =>
-    formatMoneyWith(amount, { currency: cfg.currency, decimals: cfg.decimals, locale: cfg.defaultLocale });
+  // Memoized so it has a stable identity for the download callback's deps.
+  const money = useCallback(
+    (amount: number) =>
+      formatMoneyWith(amount, { currency: cfg.currency, decimals: cfg.decimals, locale: cfg.defaultLocale }),
+    [cfg.currency, cfg.decimals, cfg.defaultLocale]
+  );
   const [orders, setOrders] = useState<OrderData[]>(initialOrders);
   const grandTotal = useMemo(
     () => orders.filter((o) => o.status !== "DECLINED").reduce((sum, o) => sum + o.totalAmount, 0),
     [orders]
   );
   const [isCheckedOut, setIsCheckedOut] = useState(false);
+
+  // Download-receipt state. The ref short-circuits a re-entrant click (setState is
+  // async, so `disabled` alone can't gate a same-tick second tap — cf. cart-sheet).
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFailed, setDownloadFailed] = useState(false);
+  const downloadingRef = useRef(false);
+
+  const handleDownloadReceipt = useCallback(async () => {
+    if (downloadingRef.current) return;
+    downloadingRef.current = true;
+    setIsDownloading(true);
+    setDownloadFailed(false);
+    try {
+      const kept = orders.filter((o) => o.status !== "DECLINED");
+      const receiptOrders: ReceiptOrder[] = kept.map((order, index) => ({
+        title: t("orderNumber", { number: index + 1 }),
+        subtotal: money(order.totalAmount),
+        items: order.items.map((item) => ({
+          qty: item.quantity,
+          name: item.menuItemName,
+          options:
+            item.selectedOptions && item.selectedOptions.length > 0
+              ? formatOptionSnapshot(item.selectedOptions, money, locale, cfg.canonicalLocale)
+              : "",
+          price: money(item.unitPrice * item.quantity),
+        })),
+      }));
+
+      // Date from the newest kept order; shown in the customer's own device locale.
+      const newest = kept.reduce<string | null>(
+        (max, o) => (max === null || o.createdAt > max ? o.createdAt : max),
+        null
+      );
+      const dateLabel = newest
+        ? new Date(newest).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" })
+        : new Date().toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
+
+      const data: ReceiptData = {
+        appName: cfg.appName,
+        logoUrl: cfg.logoUrl,
+        locationLabel,
+        dateLabel,
+        orders: receiptOrders,
+        grandTotalLabel: t("grandTotal"),
+        grandTotal: money(grandTotal),
+        thankYouNote: t("thankYouMessage"),
+        subtotalLabel: t("subtotal"),
+      };
+
+      const blob = await renderReceiptToPngBlob(data);
+      const url = URL.createObjectURL(blob);
+      const slug = cfg.appName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "receipt";
+      const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "").replace(/(\d{8})(\d{4})/, "$1-$2");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `receipt-${slug}-${stamp}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setDownloadFailed(true);
+    } finally {
+      downloadingRef.current = false;
+      setIsDownloading(false);
+    }
+  }, [orders, t, money, locale, cfg.canonicalLocale, cfg.appName, cfg.logoUrl, locationLabel, grandTotal]);
 
   // Keep the latest locale in a ref so the polling callback can read it without
   // listing `locale` as a dependency (which would re-create the 10s interval).
@@ -155,9 +231,13 @@ export function OrderSummary({
   }, [sessionId, cfg.canonicalLocale]);
 
   useEffect(() => {
+    // Once checked out, the session is terminal — the thank-you screen just waits
+    // for the customer (e.g. to download the receipt), so stop polling: further
+    // fetches only re-confirm the same CHECKED_OUT status.
+    if (isCheckedOut) return;
     const poll = setInterval(pollOrders, 10_000);
     return () => clearInterval(poll);
-  }, [pollOrders]);
+  }, [pollOrders, isCheckedOut]);
 
   // Thank you screen after checkout
   if (isCheckedOut) {
@@ -186,12 +266,39 @@ export function OrderSummary({
         </p>
 
         {/* Grand total display */}
-        <div className="mb-8 rounded-xl bg-white px-8 py-4 shadow-sm">
+        <div className="mb-6 rounded-xl bg-white px-8 py-4 shadow-sm">
           <p className="text-sm text-gray-500">{t("grandTotal")}</p>
           <p className="text-3xl font-bold text-gray-900">
             {money(grandTotal)}
           </p>
         </div>
+
+        {/* Download receipt — the itemized breakdown vanishes from screen at
+            checkout, so this hands the customer a keep-able PNG copy. */}
+        <button
+          type="button"
+          onClick={handleDownloadReceipt}
+          disabled={isDownloading}
+          className="inline-flex h-11 items-center gap-2 rounded-lg bg-primary-500 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 focus-visible:ring-offset-2 disabled:opacity-60"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 3a1 1 0 011 1v6.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L9 10.586V4a1 1 0 011-1zM4 15a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {isDownloading ? t("downloadingReceipt") : t("downloadReceipt")}
+        </button>
+        {downloadFailed && (
+          <p className="mt-3 text-sm text-red-600">{t("downloadError")}</p>
+        )}
 
       </div>
     );

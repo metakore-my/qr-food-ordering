@@ -141,24 +141,29 @@ export default async function CheckoutPage({
       <header className="bg-white px-3 py-3 shadow-sm sm:px-4 sm:py-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link
-              href="/menu"
-              className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
-              aria-label={t("backToMenu")}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+            {/* Once the bill is settled the session is terminal — hide the
+                back-to-menu escape so the receipt screen can't be left (the
+                menu/cart would only bounce to "Session Expired" anyway). */}
+            {session.status !== "CHECKED_OUT" && (
+              <Link
+                href="/menu"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
+                aria-label={t("backToMenu")}
               >
-                <path
-                  fillRule="evenodd"
-                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </Link>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </Link>
+            )}
             <div className="min-w-0">
               <h1 className="truncate text-lg font-bold text-gray-900 sm:text-xl">{t("title")}</h1>
               <p className="truncate text-sm text-gray-500">{session.table ? t("tableNumber", { number: session.table.number }) : tOrder("takeawayLabel")}</p>
@@ -182,6 +187,7 @@ export default async function CheckoutPage({
           sessionId={sessionId}
           orders={serializedOrders}
           locale={locale}
+          locationLabel={session.table ? t("tableNumber", { number: session.table.number }) : tOrder("takeawayLabel")}
         />
       </div>
     </main>

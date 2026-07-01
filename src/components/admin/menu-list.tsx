@@ -901,17 +901,22 @@ export function MenuList({
                       />
                     </label>
 
-                    {/* Image thumbnail */}
+                    {/* Image thumbnail — a 4:3 box (scales with the card width)
+                        rather than a fixed short band, so the photo reads large
+                        on a full-width phone card instead of a thin letterbox
+                        strip. Matches the customer card's 4:3 ratio. */}
                     {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={getItemName(item)}
-                        width={320}
-                        height={160}
-                        className="h-32 w-full object-cover sm:h-40"
-                      />
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+                        <Image
+                          src={item.imageUrl}
+                          alt={getItemName(item)}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover"
+                        />
+                      </div>
                     ) : (
-                      <div className="flex h-32 items-center justify-center bg-gray-100 sm:h-40">
+                      <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-100">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-10 w-10 text-gray-300"
